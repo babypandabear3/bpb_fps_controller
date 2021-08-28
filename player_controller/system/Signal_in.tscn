@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://player_controller/system/Signal_in.gd" type="Script" id=1]
+
+[node name="Signal_in" type="Area" groups=[
+"Signal_in",
+]]
+collision_layer = 4
+collision_mask = 4
+script = ExtResource( 1 )
+
+[connection signal="area_entered" from="." to="." method="_on_Signal_in_area_entered"]
+[connection signal="area_exited" from="." to="." method="_on_Signal_in_area_exited"]

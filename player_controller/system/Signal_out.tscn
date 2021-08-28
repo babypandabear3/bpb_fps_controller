@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://player_controller/system/Signal_out.gd" type="Script" id=1]
+
+[node name="Signal_out" type="Area" groups=[
+"Signal_out",
+]]
+collision_layer = 4
+collision_mask = 4
+script = ExtResource( 1 )
