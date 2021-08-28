@@ -155,16 +155,12 @@ shape = SubResource( 1 )
 [node name="root_ray_stair" type="Spatial" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0 )
 
-[node name="ray_stair1" type="RayCast" parent="root_ray_stair"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0 )
-cast_to = Vector3( 0, 0, -0.5 )
-
-[node name="ray_stair3" type="RayCast" parent="root_ray_stair"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0 )
+[node name="ray_stair2" type="RayCast" parent="root_ray_stair"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0 )
 enabled = true
 cast_to = Vector3( 0, 0, -0.5 )
 
-[node name="ray_stair2" type="RayCast" parent="root_ray_stair"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0 )
+[node name="ray_stair1" type="RayCast" parent="root_ray_stair"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0 )
 enabled = true
 cast_to = Vector3( 0, 0, -0.5 )

@@ -69,7 +69,6 @@ onready var ray_climb3 = $ray_climb3
 onready var root_ray_stair = $root_ray_stair
 onready var ray_stair1 = $root_ray_stair/ray_stair1
 onready var ray_stair2 = $root_ray_stair/ray_stair2
-onready var ray_stair3 = $root_ray_stair/ray_stair3
 
 var recoil = Vector3.ZERO
 var recoil_deacc = 0.9
@@ -106,7 +105,7 @@ func _ready():
 	
 	ray_stair1.add_exception(self)
 	ray_stair2.add_exception(self)
-	ray_stair3.add_exception(self)
+	#ray_stair3.add_exception(self)
 	
 func get_default_activate_data():
 	activate_data.mouse_sensitivity = MOUSE_SENSITIVITY
@@ -175,10 +174,8 @@ func _physics_process(delta):
 func try_climb_stairs():
 	ray_stair1.force_update_transform()
 	ray_stair2.force_update_transform()
-	ray_stair3.force_update_transform()
 	ray_stair1.force_raycast_update()
 	ray_stair2.force_raycast_update()
-	ray_stair3.force_raycast_update()
 	
 	var ret = false
 	if ray_stair2.is_colliding() and velocity_h.length() > 4.0:
@@ -189,12 +186,7 @@ func try_climb_stairs():
 				if d1 - d2 > 0.1:
 					ret = true
 			else:
-				if ray_stair3.is_colliding(): 
-					#DOUBLE CHECK BECAUSE SOMETIMES FOR WHATEVER REASON 
-					#RAY_STAIR1 FAILS TO DETECT WALL EVEN THOUGH IT'S CLEAR THE WALL IS THERE
-					ret = false
-				else:
-					ret = true
+				ret = true
 	return ret
 
 
@@ -257,10 +249,15 @@ func do_walk(delta):
 		velocity_h = prev_vel_h
 	
 	#ROTATE ROOT RAY STAIR
-	var look_at_target = global_transform.origin + (velocity_h * Vector3(1,0,1))
-	if not look_at_target.is_equal_approx(global_transform.origin):
+	var look_at_target = root_ray_stair.global_transform.origin + (velocity_h * Vector3(1,0,1))
+	if not look_at_target.is_equal_approx(root_ray_stair.global_transform.origin):
 		root_ray_stair.look_at(look_at_target, Vector3.UP)
 	
+	#CLIMBING STAIR CHECKING
+	var climb_stair = try_climb_stairs()
+	if climb_stair:
+		snap_vector = Vector3()
+		
 	#VERTICAL VELOCITY
 	if input_jump > 0 and air_borne < coyote_time: 
 		#START JUMP
@@ -277,12 +274,13 @@ func do_walk(delta):
 				snap_vector = -floor_collision.normal
 			speed_v = 0.1
 		else: #SLOPE TOO STEEP, SLIDE DOWN
-			var slide_vector = floor_normal
-			slide_vector.y = 0
-			slide_vector = slide_vector.normalized()
-			velocity_h = velocity_h.slide(slide_vector)
-			vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
-			speed_v = on_slope_steep_speed
+			if not climb_stair:
+				var slide_vector = floor_normal
+				slide_vector.y = 0
+				slide_vector = slide_vector.normalized()
+				velocity_h = velocity_h.slide(slide_vector)
+				vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
+				speed_v = on_slope_steep_speed
 		velocity_v = vertical_vector * speed_v
 	else:
 		#ON AIR
@@ -303,10 +301,6 @@ func do_walk(delta):
 	var recoil_force = (global_transform.basis.x * recoil.x) + (global_transform.basis.y * recoil.y) + (global_transform.basis.z * recoil.z)
 	velocity += recoil_force * delta * 60
 	recoil *= recoil_deacc * delta * 60
-		
-	var climb_stair = try_climb_stairs()
-	if climb_stair:
-		snap_vector = Vector3()
 		
 	var _vel = move_and_slide_with_snap(velocity, snap_vector, Vector3.UP, true, 4, deg2rad(45), false)
 	
