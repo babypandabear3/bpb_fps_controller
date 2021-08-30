@@ -27,13 +27,13 @@ move_to = Vector3( 0, 4, 0 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 3.8, -30 )
 
 [node name="Box-grabable" parent="testmap" instance=ExtResource( 5 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -12.6022, 4, -16.6138 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -32.3771, 4, 27.512 )
 
 [node name="Box-grabable2" parent="testmap" instance=ExtResource( 5 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -8.63308, 4, -20.8146 )
 
 [node name="Box-grabable3" parent="testmap" instance=ExtResource( 5 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -7.52112, 4, -15.6794 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -15.9299, 4, 34.2927 )
 
 [node name="wind_tunnel" parent="testmap" instance=ExtResource( 6 )]
 transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -28, 2, 36.5 )

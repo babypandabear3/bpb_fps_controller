@@ -10,6 +10,12 @@ enum STATELIST {
 	WALLRUN,
 }
 
+enum BODY_HEIGHT_LIST {
+	STAND,
+	CROUCH,
+	UNCROUCHING
+}
+
 export (bool) var feat_crouching = true
 export (bool) var feat_climbing = true
 export (bool) var feat_slide = true
@@ -21,7 +27,8 @@ export (bool) var air_control = false
 export (float) var speed_h_max = 360
 export (float) var speed_acc = 30
 export (float) var speed_deacc = 50
-export (float) var sprint_modi_active = 1.5
+export (float) var sprint_modi = 1.5
+export (float) var crouch_modi = 0.6
 export (float) var coyote_time : float = 0.2
 export (float) var gravity_force = 30
 export (float) var gravity_acc = 20
@@ -33,7 +40,7 @@ export (float) var on_slope_steep_speed = 1.0
 export (float) var slide_time = 1
 
 export (float) var throw_force = 10
-var body_height : String = "STAND"
+var body_height : int = BODY_HEIGHT_LIST.STAND
 
 var jump_skip_timer = 0
 var jump_skip_timeout = 0.1
@@ -214,10 +221,11 @@ func try_climb_stairs():
 	return ret
 
 func body_height_crouch():
-	body_height = "CROUCH"
+	body_height = BODY_HEIGHT_LIST.CROUCH
 
 func body_height_stand():
-	body_height = "STAND"
+	body_height = BODY_HEIGHT_LIST.STAND
+	sprint_modifier = sprint_modi_nonactive
 
 func start_walk():
 	state = STATELIST.WALK
@@ -269,6 +277,8 @@ func do_walk(delta):
 		velocity_h = prev_vel_h * delta * speed_deacc
 	else:
 		#ACCELERATION
+		if body_height == BODY_HEIGHT_LIST.CROUCH:
+			sprint_modifier = crouch_modi
 		if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
 			#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
 			velocity_h = prev_vel_h * delta * speed_deacc
@@ -363,13 +373,13 @@ func do_walk(delta):
 				
 	#TOGGLE CROUCH
 	if Input.is_action_just_pressed("action_crouch_toggle") and feat_crouching:
-		if body_height == "STAND":
+		if body_height == BODY_HEIGHT_LIST.STAND:
 			ap.play("CROUCH")
 		else:
-			body_height = "UNCROUCHING"
+			body_height = BODY_HEIGHT_LIST.UNCROUCHING
 			
 	#UNCROUCHING LOGIC
-	if body_height == "UNCROUCHING":
+	if body_height == BODY_HEIGHT_LIST.UNCROUCHING:
 		if not ray_uncrouch.is_colliding(): #uncrouch if there's enough space above head
 			ap.play_backwards("CROUCH")
 			
@@ -381,10 +391,10 @@ func do_walk(delta):
 	#SPRINT
 	if Input.is_action_pressed("action_sprint"):
 		sprint_enabled = true
-		sprint_modifier = sprint_modi_active
+		sprint_modifier = sprint_modi
 		
 		#SLIDE
-		if body_height == "STAND" and Input.is_action_just_pressed("action_crouch_toggle") and feat_slide:
+		if body_height == BODY_HEIGHT_LIST.STAND and Input.is_action_just_pressed("action_crouch_toggle") and feat_slide:
 			start_slide()
 			
 		#WALLRUN
@@ -396,7 +406,7 @@ func start_climb():
 	state = STATELIST.CLIMB
 	climb_target = ray_climb3.get_collision_point()	
 	climb_timer = climb_timeout
-	if body_height != "CROUCH":
+	if body_height != BODY_HEIGHT_LIST.CROUCH:
 		ap.play("CROUCH")
 	
 	
@@ -454,7 +464,7 @@ func start_slide():
 	state = STATELIST.SLIDE
 	
 func do_slide(delta):
-	sprint_modifier = sprint_modi_active
+	sprint_modifier = sprint_modi
 	if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
 		#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
 		velocity_h *= 0.88
@@ -509,7 +519,7 @@ func do_wallrun(delta):
 		start_walk()
 		return
 	var normal = get_slide_collision(0).normal
-	sprint_modifier = sprint_modi_active
+	sprint_modifier = sprint_modi
 	if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
 		#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
 		velocity_h *= 0.88
