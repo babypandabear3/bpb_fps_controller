@@ -5,11 +5,15 @@ extends KinematicBody
 enum STATELIST {
 	WALK,
 	CLIMB,
-	FLY
+	FLY,
+	SLIDE,
+	WALLRUN,
 }
 
 export (bool) var feat_crouching = true
 export (bool) var feat_climbing = true
+export (bool) var feat_slide = true
+export (bool) var feat_wallrun = true
 
 export (float) var MOUSE_SENSITIVITY = 0.07
 export (bool) var air_control = false
@@ -18,7 +22,7 @@ export (float) var speed_h_max = 360
 export (float) var speed_acc = 30
 export (float) var speed_deacc = 50
 export (float) var sprint_modi_active = 1.5
-
+export (float) var coyote_time : float = 0.2
 export (float) var gravity_force = 30
 export (float) var gravity_acc = 20
 export (float) var jump_force = -6
@@ -26,8 +30,10 @@ export (float) var jump_force = -6
 export (float) var slope_limit = 46.0
 export (float) var on_slope_steep_speed = 1.0
 
+export (float) var slide_time = 1
+
 export (float) var throw_force = 10
-export (String, "STAND", "CROUCH", "UNCROUCHING") var body_height = "STAND" #DON"T CHANGE FROM DEFAULT, THIS IS FOR ANIMATION PLAYER TO MAKE KEYFRAME
+var body_height : String = "STAND"
 
 var jump_skip_timer = 0
 var jump_skip_timeout = 0.1
@@ -54,6 +60,9 @@ var activate_data = {}
 var climb_target = Vector3()
 var climb_timer = 0
 var climb_timeout = 0.6
+
+var automove_dir = Vector3()
+var slide_timer = 0
 
 onready var ap = $AnimationPlayer
 onready var rotation_helper = $rotation_helper
@@ -88,12 +97,15 @@ var external_force : Vector3 = Vector3.ZERO
 
 #INPUT
 var input_jump_timeout = 0.2
-var coyote_time : float = 0.2
 var air_borne : float = 0.0
+var air_borne_disable_snap = 0.4
 
 var input_h : float = 0.0
 var input_v : float = 0.0
-var input_jump : float = 0.0
+var input_jump_buffer : float = 0.0
+var input_jump_just_pressed : bool = false
+var input_sprint : bool = false
+var input_sprint_just_pressed : bool = false
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -105,7 +117,8 @@ func _ready():
 	
 	ray_stair1.add_exception(self)
 	ray_stair2.add_exception(self)
-	#ray_stair3.add_exception(self)
+	
+	air_borne_disable_snap = coyote_time + 0.2
 	
 func get_default_activate_data():
 	activate_data.mouse_sensitivity = MOUSE_SENSITIVITY
@@ -131,9 +144,9 @@ func _input(event):
 	#TOGGLE FLY MODE
 	if Input.is_action_just_pressed("action_toggle_fly"):
 		if state == STATELIST.WALK:
-			state = STATELIST.FLY
+			start_fly()
 		else:
-			state = STATELIST.WALK
+			start_walk()
 			
 	
 		
@@ -141,8 +154,7 @@ func _process(delta):
 	#GET USER INPUT VALUE
 	input_h = Input.get_action_strength("movement_right") - Input.get_action_strength("movement_left")
 	input_v = Input.get_action_strength("movement_forward") - Input.get_action_strength("movement_backward")
-	if Input.is_action_just_pressed("movement_jump"):
-		input_jump = input_jump_timeout
+	
 	
 	#SPRINT - STOP
 	if Input.is_action_just_released("action_sprint"):
@@ -153,11 +165,19 @@ func _process(delta):
 	if jump_skip_timer > 0:
 		jump_skip_timer -= delta
 		
-	if input_jump > 0:
-		input_jump -= delta
+	if input_jump_buffer > 0:
+		input_jump_buffer -= delta
+		
+	if slide_timer > 0:
+		slide_timer -= delta
 		
 		
 func _physics_process(delta):
+	#INPUT JUST PRESSED
+	if Input.is_action_just_pressed("movement_jump"):
+		input_jump_buffer = input_jump_timeout
+		
+		
 	match state:
 		STATELIST.WALK:
 			do_walk(delta)
@@ -165,6 +185,10 @@ func _physics_process(delta):
 			do_climb(delta)
 		STATELIST.FLY:
 			do_fly(delta)
+		STATELIST.SLIDE:
+			do_slide(delta)
+		STATELIST.WALLRUN:
+			do_wallrun(delta)
 
 	if is_on_floor():
 		air_borne = 0.0
@@ -189,7 +213,15 @@ func try_climb_stairs():
 				ret = true
 	return ret
 
+func body_height_crouch():
+	body_height = "CROUCH"
 
+func body_height_stand():
+	body_height = "STAND"
+
+func start_walk():
+	state = STATELIST.WALK
+	
 func do_walk(delta):
 	#DEFAULT VERTICAL MOVEMENT VALUE
 	floor_normal = Vector3.UP
@@ -253,18 +285,18 @@ func do_walk(delta):
 	if not look_at_target.is_equal_approx(root_ray_stair.global_transform.origin):
 		root_ray_stair.look_at(look_at_target, Vector3.UP)
 	
-	#CLIMBING STAIR CHECKING
+	#DISABLE SNAP WHEN CLIMBING STAIR OR BEING AIR BORNE FOR TOO LONG
 	var climb_stair = try_climb_stairs()
-	if climb_stair:
+	if climb_stair or air_borne > air_borne_disable_snap:
 		snap_vector = Vector3()
 		
 	#VERTICAL VELOCITY
-	if input_jump > 0 and air_borne < coyote_time: 
+	if input_jump_buffer > 0 and air_borne < coyote_time and is_on_floor(): 
 		#START JUMP
 		speed_v = jump_force
 		velocity_v = vertical_vector * speed_v
 		jump_skip_timer = jump_skip_timeout
-		input_jump = 0
+		input_jump_buffer = 0
 		snap_vector = Vector3.ZERO
 	elif is_on_floor() and jump_skip_timer <= 0: 
 		#ON FLOOR
@@ -350,8 +382,15 @@ func do_walk(delta):
 	if Input.is_action_pressed("action_sprint"):
 		sprint_enabled = true
 		sprint_modifier = sprint_modi_active
+		
+		#SLIDE
+		if body_height == "STAND" and Input.is_action_just_pressed("action_crouch_toggle") and feat_slide:
+			start_slide()
+			
+		#WALLRUN
+		if is_wallrun_allowed() and feat_wallrun:
+			start_wallrun()
 	
-
 func start_climb():
 	#START CLIMBING LOGIC
 	state = STATELIST.CLIMB
@@ -373,9 +412,11 @@ func do_climb(delta):
 	
 	climb_timer -= delta
 	if climb_timer <= 0:
-		state = STATELIST.WALK
+		start_walk()
 		
-
+func start_fly():
+	state = STATELIST.FLY
+	
 func do_fly(delta):
 	#GET USER INPUT VALUE
 	
@@ -406,14 +447,102 @@ func do_fly(delta):
 	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
+
+func start_slide():
+	automove_dir = -global_transform.basis.z
+	slide_timer = slide_time
+	state = STATELIST.SLIDE
+	
+func do_slide(delta):
+	sprint_modifier = sprint_modi_active
+	if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
+		#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
+		velocity_h *= 0.88
+	else:
+		#INCREASE MOVEMENT VECTOR BY ADDING NEW MOVEMENT VECTOR TO PREVIOS FRAME HORIZONTAL VELOCITY
+		velocity_h = prev_vel_h + (automove_dir * speed_acc * delta)
+		
+	if is_on_floor() and jump_skip_timer <= 0: 
+		#ON FLOOR
+		if floor_angle <= deg2rad(slope_limit): #STICKING ON FLOOR / SLOPE
+			if floor_collision:
+				vertical_vector = -floor_collision.normal
+				snap_vector = -floor_collision.normal
+			speed_v = 0.1
+		else: #SLOPE TOO STEEP, SLIDE DOWN
+			
+			var slide_vector = floor_normal
+			slide_vector.y = 0
+			slide_vector = slide_vector.normalized()
+			velocity_h = velocity_h.slide(slide_vector)
+			vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
+			speed_v = on_slope_steep_speed
+		velocity_v = vertical_vector * speed_v
+	else:
+		#ON AIR
+		speed_v = clamp(speed_v + (delta * gravity_acc), jump_force, gravity_force)
+		velocity_v = vertical_vector * speed_v
+	
+	velocity = velocity_h + velocity_v
+	
+	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
+	prev_vel_h = velocity_h
+	prev_vel_v = velocity_v
+	
+	if slide_timer <= 0:
+		start_walk()
+	
+func is_wallrun_allowed():
+	if not is_on_floor() and is_on_wall() and Input.is_action_pressed("action_sprint") and jump_skip_timer <= 0 :
+		return true
+	else:
+		return false
+	
+func start_wallrun():
+	var normal = get_slide_collision(0).normal
+	automove_dir = (-global_transform.basis.z.slide(normal)).normalized()
+	
+	state = STATELIST.WALLRUN
+	
+func do_wallrun(delta):
+	if not is_wallrun_allowed():
+		start_walk()
+		return
+	var normal = get_slide_collision(0).normal
+	sprint_modifier = sprint_modi_active
+	if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
+		#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
+		velocity_h *= 0.88
+	else:
+		#INCREASE MOVEMENT VECTOR BY ADDING NEW MOVEMENT VECTOR TO PREVIOS FRAME HORIZONTAL VELOCITY
+		velocity_h = prev_vel_h + (automove_dir * speed_acc * delta)
+	velocity_h -= normal * 0.1
+	
+	velocity_v = Vector3.ZERO
+	
+	if Input.is_action_just_pressed("movement_jump"):
+		#START JUMP
+		speed_v = jump_force
+		velocity_v = vertical_vector * speed_v
+		jump_skip_timer = jump_skip_timeout
+		input_jump_buffer = 0
+		velocity_h += normal * (speed_h_max * sprint_modifier * delta)
+		
+	
+	velocity = velocity_h + velocity_v
+	
+	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
+	prev_vel_h = velocity_h
+	prev_vel_v = velocity_v
+	
 	
 #SIGNAL LOGIC
 func ladder_add(par):
 	ladder_count += par
 	if ladder_count > 0:
-		state = STATELIST.FLY
+		start_fly()
 	else:
-		state = STATELIST.WALK
+		start_walk()
 
 func wind_force_add(force):
 	external_force += force

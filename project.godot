@@ -14,6 +14,10 @@ config/name="Bpb Fps Controller"
 run/main_scene="res://demo/demo_scene.tscn"
 config/icon="res://icon.png"
 
+[display]
+
+window/vsync/use_vsync=false
+
 [input]
 
 movement_right={
