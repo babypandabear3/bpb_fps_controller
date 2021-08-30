@@ -2,12 +2,9 @@
 ------------------------------------
 BabyPandaBear3 First Person Shooter Player Controller
 ------------------------------------
-
 ## Status:
 > 0.1.1
 ------------------------------------
-
-
 ## Install:
 Clone or download the repository. Extract
 Copy folder "player_controller" to your project
@@ -22,14 +19,10 @@ Add These Input to Input Map
 - action_crouch_toggle
 - action_toggle_fly
 - action_m0
-
 ------------------------------------
-
 ## Usage
 - Put Player.tscn to your map
-
 ------------------------------------
-
 ## Features
 - Crouching
 - Climbing, Dishonored / Thief Style. Press and Hold movement_jump while on air, near ledge and player will climb up
@@ -39,9 +32,8 @@ Add These Input to Input Map
 - Body can be affected by external force such as Wind Tunnel
 - Sliding (Dishonored style, Run then Crouch to slide)
 - Wall Run and Wall Jump
-
+- Set Jump Limit to 2 or 3 to allow Double / Triple Jump
 ------------------------------------
-
 ## Customization
 There are several exported variables that can be changed to customize Player behavior. 
 
@@ -57,8 +49,8 @@ There are several exported variables that can be changed to customize Player beh
 - Sprint Modi : If action_sprint button is pressed,  maximum speed is now Speed H Max * Sprint Modi Active
 - Crouch Modi : When crouching, maximum speed formula is Speed H Max * Crouch Modi.
 - Coyote Time : Allows player to jump a short time after getting off ground
-- Gravity Force : Maximum vertical soeed
-- Gravity Acc : vertical movement acceleration rate
+- Gravity Force : Maximum vertical speed
+- Gravity Acc : Vertical movement acceleration rate
 - Jump Force : Affect Jump Height
 - Jump Limit : Define how many jump player can do. If set to 2 then player can do double jump
 - Slope Limit : in Degree. If floor is steeper than Slope Limit then Player can't climb and will slide down slope
