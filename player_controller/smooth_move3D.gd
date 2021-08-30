@@ -11,7 +11,7 @@ func _ready():
 	target = get_node_or_null(follow_target)
 	if target == null:
 		target = get_parent()
-	physic_fps = ProjectSettings.get_setting("physics/common/physics_fps")
+	physic_fps = ProjectSettings.get_setting("physics/common/physics_fps") - 0.5
 	global_transform = target.global_transform
 
 func _process(delta):

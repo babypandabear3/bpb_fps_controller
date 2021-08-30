@@ -33,7 +33,7 @@ export (float) var coyote_time : float = 0.2
 export (float) var gravity_force = 30
 export (float) var gravity_acc = 20
 export (float) var jump_force = -6
-
+export (int) var jump_limit = 1
 export (float) var slope_limit = 46.0
 export (float) var on_slope_steep_speed = 1.0
 
@@ -96,6 +96,9 @@ var floor_normal = Vector3.UP
 var floor_obj = null
 var floor_prev_rot = null
 
+var jump_count = 0
+
+
 onready var state = STATELIST.WALK
 
 #SIGNAL LOGIC
@@ -125,7 +128,7 @@ func _ready():
 	ray_stair1.add_exception(self)
 	ray_stair2.add_exception(self)
 	
-	air_borne_disable_snap = coyote_time + 0.2
+	air_borne_disable_snap = coyote_time + 0.1
 	
 func get_default_activate_data():
 	activate_data.mouse_sensitivity = MOUSE_SENSITIVITY
@@ -199,8 +202,11 @@ func _physics_process(delta):
 
 	if is_on_floor():
 		air_borne = 0.0
+		jump_count = 0
 	else:
 		air_borne += delta
+		if air_borne > coyote_time and jump_count == 0:
+			jump_count += 1
 		
 func try_climb_stairs():
 	ray_stair1.force_update_transform()
@@ -301,13 +307,14 @@ func do_walk(delta):
 		snap_vector = Vector3()
 		
 	#VERTICAL VELOCITY
-	if input_jump_buffer > 0 and air_borne < coyote_time and is_on_floor(): 
+	if input_jump_buffer > 0 and jump_count < jump_limit :
 		#START JUMP
 		speed_v = jump_force
 		velocity_v = vertical_vector * speed_v
 		jump_skip_timer = jump_skip_timeout
 		input_jump_buffer = 0
 		snap_vector = Vector3.ZERO
+		jump_count += 1
 	elif is_on_floor() and jump_skip_timer <= 0: 
 		#ON FLOOR
 		if floor_angle <= deg2rad(slope_limit): #STICKING ON FLOOR / SLOPE

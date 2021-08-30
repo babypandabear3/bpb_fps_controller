@@ -60,6 +60,7 @@ There are several exported variables that can be changed to customize Player beh
 - Gravity Force : Maximum vertical soeed
 - Gravity Acc : vertical movement acceleration rate
 - Jump Force : Affect Jump Height
+- Jump Limit : Define how many jump player can do. If set to 2 then player can do double jump
 - Slope Limit : in Degree. If floor is steeper than Slope Limit then Player can't climb and will slide down slope
 - On Slope Steep Speed : how fast player will slide down steep slope
 - Slide Time : How long player will slide 
