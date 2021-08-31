@@ -23,7 +23,7 @@ export (bool) var feat_wallrun = true
 
 export (float) var MOUSE_SENSITIVITY = 0.07
 export (bool) var air_control = false
-
+export (String, "C0.6", "C0.7", "C0.8", "C0.9") var crouch_anim = "C0.9"
 export (float) var speed_h_max = 360
 export (float) var speed_acc = 30
 export (float) var speed_deacc = 50
@@ -37,7 +37,7 @@ export (int) var jump_limit = 1
 export (float) var slope_limit = 46.0
 export (float) var on_slope_steep_speed = 1.0
 
-export (float) var slide_time = 1
+export (float) var slide_time = 1.2
 
 export (float) var throw_force = 10
 var body_height : int = BODY_HEIGHT_LIST.STAND
@@ -97,7 +97,8 @@ var floor_obj = null
 var floor_prev_rot = null
 
 var jump_count = 0
-
+var wallrun_left = false
+var impulse = Vector3.ZERO
 
 onready var state = STATELIST.WALK
 
@@ -336,6 +337,12 @@ func do_walk(delta):
 		speed_v = clamp(speed_v + (delta * gravity_acc), jump_force, gravity_force)
 		velocity_v = vertical_vector * speed_v
 	 
+	#ADD IMPULSE FROM apply_central_impulse FUNCTION
+	if impulse != Vector3.ZERO:
+		velocity_h += impulse * Vector3(0,1,0)
+		velocity_v += impulse * Vector3(1,0,1)
+		impulse = Vector3.ZERO
+		
 	velocity = velocity_h + velocity_v
 
 	#ADD EXTERNAL FORCE TO OVERALL VELOCITY
@@ -381,14 +388,14 @@ func do_walk(delta):
 	#TOGGLE CROUCH
 	if Input.is_action_just_pressed("action_crouch_toggle") and feat_crouching:
 		if body_height == BODY_HEIGHT_LIST.STAND:
-			ap.play("CROUCH")
+			ap.play(crouch_anim)
 		else:
 			body_height = BODY_HEIGHT_LIST.UNCROUCHING
 			
 	#UNCROUCHING LOGIC
 	if body_height == BODY_HEIGHT_LIST.UNCROUCHING:
 		if not ray_uncrouch.is_colliding(): #uncrouch if there's enough space above head
-			ap.play_backwards("CROUCH")
+			ap.play_backwards(crouch_anim)
 			
 	#CLIMBING
 	if Input.is_action_pressed("movement_jump") and not is_on_floor() and feat_climbing: #CLIMBING EDGE
@@ -414,7 +421,7 @@ func start_climb():
 	climb_target = ray_climb3.get_collision_point()	
 	climb_timer = climb_timeout
 	if body_height != BODY_HEIGHT_LIST.CROUCH:
-		ap.play("CROUCH")
+		ap.play(crouch_anim)
 	
 	
 func do_climb(delta):
@@ -511,7 +518,17 @@ func do_slide(delta):
 	
 func is_wallrun_allowed():
 	if not is_on_floor() and is_on_wall() and Input.is_action_pressed("action_sprint") and jump_skip_timer <= 0 :
-		return true
+		if ray_stair1.is_colliding() and ray_stair2.is_colliding():
+			var d1 : float = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
+			var d2 : float = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
+			if Vector2(d1,0).is_equal_approx(Vector2(d2,0)):
+				return true
+			else:
+				return false
+		elif not ray_stair1.is_colliding() and ray_stair2.is_colliding():
+			return false
+		else:
+			return true
 	else:
 		return false
 	
@@ -520,6 +537,10 @@ func start_wallrun():
 	automove_dir = (-global_transform.basis.z.slide(normal)).normalized()
 	
 	state = STATELIST.WALLRUN
+	if global_transform.basis.x.angle_to(normal) < deg2rad(90):
+		wallrun_left = true
+	else:
+		wallrun_left = false
 	
 func do_wallrun(delta):
 	if not is_wallrun_allowed():
@@ -574,3 +595,6 @@ func camera_recoil(force):
 
 	rotate_y(deg2rad(ry))
 	rotation_helper.rotate_x(deg2rad(rx))
+
+func apply_central_impulse(par):
+	impulse = par

@@ -1,6 +1,7 @@
 extends Spatial
 
 export (NodePath) var follow_target
+
 var physic_fps : float = 0.0
 
 var target : Spatial
@@ -13,6 +14,8 @@ func _ready():
 		target = get_parent()
 	physic_fps = ProjectSettings.get_setting("physics/common/physics_fps") - 0.5
 	global_transform = target.global_transform
+	
+	
 
 func _process(delta):
 	global_transform = global_transform.interpolate_with(target.global_transform, delta * physic_fps)

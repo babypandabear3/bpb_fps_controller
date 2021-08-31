@@ -1,14 +1,16 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://player_controller/smooth_move3D.gd" type="Script" id=1]
 [ext_resource path="res://player_controller/system/Signal_in.tscn" type="PackedScene" id=2]
 [ext_resource path="res://player_controller/Player.gd" type="Script" id=3]
+[ext_resource path="res://player_controller/Camera_addon.tscn" type="PackedScene" id=4]
 
 [sub_resource type="CapsuleShape" id=1]
 radius = 0.3
 height = 1.1
 
 [sub_resource type="Animation" id=2]
+resource_name = "C0.6"
 length = 0.3
 tracks/0/type = "value"
 tracks/0/path = NodePath("CollisionShape:shape:height")
@@ -100,6 +102,285 @@ tracks/6/keys = {
 } ]
 }
 
+[sub_resource type="Animation" id=3]
+resource_name = "C0.7"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/path = NodePath("CollisionShape:shape:height")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ 1.1, 0.1 ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("CollisionShape:translation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -0.55, 0 ), Vector3( 0, -0.05, 0 ) ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("ray_uncrouch:translation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -1.1, 0 ), Vector3( 0, 0, 0 ) ]
+}
+tracks/3/type = "value"
+tracks/3/path = NodePath("ray_uncrouch:enabled")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 1,
+"values": [ false, true ]
+}
+tracks/4/type = "value"
+tracks/4/path = NodePath("Signal_in/CollisionShape2:translation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -0.55, 0 ), Vector3( 0, -0.05, 0 ) ]
+}
+tracks/5/type = "value"
+tracks/5/path = NodePath("root_ray_stair:translation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -1.1, 0 ), Vector3( 0, -0.1, 0 ) ]
+}
+tracks/6/type = "method"
+tracks/6/path = NodePath(".")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"values": [ {
+"args": [  ],
+"method": "body_height_stand"
+}, {
+"args": [  ],
+"method": "body_height_crouch"
+} ]
+}
+
+[sub_resource type="Animation" id=4]
+resource_name = "C0.8"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/path = NodePath("CollisionShape:shape:height")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ 1.1, 0.2 ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("CollisionShape:translation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -0.55, 0 ), Vector3( 0, -0.1, 0 ) ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("ray_uncrouch:translation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -1.1, 0 ), Vector3( 0, 0, 0 ) ]
+}
+tracks/3/type = "value"
+tracks/3/path = NodePath("ray_uncrouch:enabled")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 1,
+"values": [ false, true ]
+}
+tracks/4/type = "value"
+tracks/4/path = NodePath("Signal_in/CollisionShape2:translation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -0.55, 0 ), Vector3( 0, -0.1, 0 ) ]
+}
+tracks/5/type = "value"
+tracks/5/path = NodePath("root_ray_stair:translation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -1.1, 0 ), Vector3( 0, -0.2, 0 ) ]
+}
+tracks/6/type = "method"
+tracks/6/path = NodePath(".")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"values": [ {
+"args": [  ],
+"method": "body_height_stand"
+}, {
+"args": [  ],
+"method": "body_height_crouch"
+} ]
+}
+
+[sub_resource type="Animation" id=5]
+resource_name = "C0.9"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/path = NodePath("CollisionShape:shape:height")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ 1.1, 0.3 ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("CollisionShape:translation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -0.55, 0 ), Vector3( 0, -0.15, 0 ) ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("ray_uncrouch:translation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -1.1, 0 ), Vector3( 0, 0, 0 ) ]
+}
+tracks/3/type = "value"
+tracks/3/path = NodePath("ray_uncrouch:enabled")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 1,
+"values": [ false, true ]
+}
+tracks/4/type = "value"
+tracks/4/path = NodePath("Signal_in/CollisionShape2:translation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -0.55, 0 ), Vector3( 0, -0.15, 0 ) ]
+}
+tracks/5/type = "value"
+tracks/5/path = NodePath("root_ray_stair:translation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, -1.1, 0 ), Vector3( 0, -0.3, 0 ) ]
+}
+tracks/6/type = "method"
+tracks/6/path = NodePath(".")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = {
+"times": PoolRealArray( 0, 0.2 ),
+"transitions": PoolRealArray( 1, 1 ),
+"values": [ {
+"args": [  ],
+"method": "body_height_stand"
+}, {
+"args": [  ],
+"method": "body_height_crouch"
+} ]
+}
+
 [node name="Player" type="KinematicBody"]
 collision_layer = 2
 collision_mask = 3
@@ -123,11 +404,14 @@ cast_to = Vector3( 0, 0, -2 )
 [node name="SmoothMove3D" type="Spatial" parent="rotation_helper/eye_position"]
 script = ExtResource( 1 )
 
-[node name="fps_camera" type="Camera" parent="rotation_helper/eye_position/SmoothMove3D"]
+[node name="Camera" type="Camera" parent="rotation_helper/eye_position/SmoothMove3D"]
 far = 200.0
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-anims/CROUCH = SubResource( 2 )
+anims/C0.6 = SubResource( 2 )
+anims/C0.7 = SubResource( 3 )
+anims/C0.8 = SubResource( 4 )
+anims/C0.9 = SubResource( 5 )
 
 [node name="ray_uncrouch" type="RayCast" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0 )
@@ -169,3 +453,7 @@ cast_to = Vector3( 0, 0, -0.5 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0 )
 enabled = true
 cast_to = Vector3( 0, 0, -0.5 )
+
+[node name="Camera_addon" parent="." instance=ExtResource( 4 )]
+follow_target = NodePath("..")
+head_bob_speed = 2.7
