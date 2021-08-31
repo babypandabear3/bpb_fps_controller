@@ -3,7 +3,7 @@
 BabyPandaBear3 First Person Shooter Player Controller
 ------------------------------------
 ## Status:
-> 0.1.1
+> 0.1.2
 ------------------------------------
 ## Install:
 Clone or download the repository. Extract
