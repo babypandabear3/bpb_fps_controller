@@ -19,6 +19,8 @@ Add These Input to Input Map
 - action_crouch_toggle
 - action_toggle_fly
 - action_m0
+- action_lean_left
+- action_lean_right
 ------------------------------------
 ## Usage
 - Put Player.tscn to your map
@@ -58,6 +60,16 @@ There are several exported variables that can be changed to customize Player beh
 - Slide Time : How long player will slide 
 - Throw Force : Force player use to throw grabbed object
 
+Camera_addon has several options that can be customized
+- Follow Target : Point it at Player's main Node (KinematicBody), if empty it will use parent node as target
+- Feat Head Bob : Enable Head Bobbing while walking
+- Feat Lean : Enable leaning sideways by pressing action_lean_left or action_lean_right
+- Feat Lean On Wallrun : If enabled, camera will lean while doing wallrun
+- Head Bob H : Head bob horizontal movement distance
+- Head Bob V : Head bob vertical movement distance
+- Head Bob Rotation : Head bob rotation
+- Head Bob Speed : Speed of head bobbing
+- Lean Angle : Maximum angle when leaning
 ------------------------------------
 
 ##Important
