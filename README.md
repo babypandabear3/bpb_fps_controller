@@ -65,6 +65,7 @@ Camera_addon has several options that can be customized
 - Feat Head Bob : Enable Head Bobbing while walking
 - Feat Lean : Enable leaning sideways by pressing action_lean_left or action_lean_right
 - Feat Lean On Wallrun : If enabled, camera will lean while doing wallrun
+- Feat Crouch Crawl : Raise crouching camera position, but when getting into tight space like air duct then camera gets lower
 - Head Bob H : Head bob horizontal movement distance
 - Head Bob V : Head bob vertical movement distance
 - Head Bob Rotation : Head bob rotation
