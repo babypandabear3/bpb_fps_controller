@@ -5,7 +5,7 @@ signal body_just_landed
 signal body_just_jump
 signal body_just_crouch
 signal body_just_stand
-
+signal body_start_climb
 
 enum STATELIST {
 	WALK,
@@ -72,10 +72,12 @@ var sprint_modi_nonactive = 1.0
 
 var activate_data = {}
 
-var climb_target = Vector3()
+var climb_target0 = Vector3()
+var climb_target1 = Vector3()
 var climb_timer = 0
 var climb_timeout = 0.6
-
+var climb_phase = 0
+var climb_y_addition = 0
 var climb_stair = false
 
 var automove_dir = Vector3()
@@ -140,6 +142,16 @@ func _ready():
 	ray_stair2.add_exception(self)
 	
 	air_borne_disable_snap = coyote_time + 0.1
+	
+	match crouch_anim:
+		"C0.6":
+			climb_y_addition = 0.3
+		"C0.7":
+			climb_y_addition = 0.4
+		"C0.8":
+			climb_y_addition = 0.5
+		"C0.9":
+			climb_y_addition = 0.6
 	
 func get_default_activate_data():
 	activate_data.mouse_sensitivity = MOUSE_SENSITIVITY
@@ -377,9 +389,7 @@ func do_walk(delta):
 		velocity_v += impulse * Vector3(1,0,1)
 		impulse = Vector3.ZERO
 		
-	#IF JUST LANDED, HALVED HORIZONTAL VELOCITY SO PLAYER DON'T SLIDE WHEN JUMP TO MOVING PLATFORM
-	if just_landed:
-		velocity_h *= 0.5
+
 		
 	velocity = velocity_h + velocity_v
 
@@ -389,7 +399,11 @@ func do_walk(delta):
 		
 	#ADD FLOOR VELOCITY FOR MOVING PLATFORM
 	if is_on_floor():
-		velocity += get_floor_velocity() * delta
+		#IF JUST LANDED, HALVED HORIZONTAL VELOCITY SO PLAYER DON'T SLIDE WHEN JUMP TO MOVING PLATFORM
+		if just_landed:
+			velocity_h *= 0.5
+		else:
+			velocity += get_floor_velocity() * delta
 		
 	#RECOIL
 	var recoil_force = (global_transform.basis.x * recoil.x) + (global_transform.basis.y * recoil.y) + (global_transform.basis.z * recoil.z)
@@ -457,25 +471,38 @@ func do_walk(delta):
 func start_climb():
 	#START CLIMBING LOGIC
 	state = STATELIST.CLIMB
-	climb_target = ray_climb3.get_collision_point()	
+	climb_target1 = ray_climb3.get_collision_point()
+	var y_diff = climb_target1.y - global_transform.origin.y + climb_y_addition
+	climb_target0 = global_transform.origin + Vector3(0, y_diff, 0)
+	climb_phase = 0
 	climb_timer = climb_timeout
 	if body_height != BODY_HEIGHT_LIST.CROUCH:
 		ap.play(crouch_anim)
-	
+	emit_signal("body_start_climb")
 	
 func do_climb(delta):
-	dir = (climb_target - global_transform.origin).normalized()
-	dir.y += 0.1 #this is a fix to avoid getting stuck when climbing
+	if climb_phase == 0:
+		dir = (climb_target0 - global_transform.origin).normalized()
+		if global_transform.origin.distance_to(climb_target0) < 0.1:
+			climb_phase += 1
+	else:
+		dir = -global_transform.basis.z * 0.3
 	velocity = dir * speed_h_max * delta
 	
 	var _vel = move_and_slide(velocity)
 	
-	prev_vel_h = velocity
+	prev_vel_h = velocity * Vector3(1,0,1)
 	prev_vel_v = Vector3.ZERO
 	
 	climb_timer -= delta
 	if climb_timer <= 0:
 		start_walk()
+		speed_v = 0
+		
+	if global_transform.origin.distance_to(climb_target1) < 0.1:
+		start_walk()
+		speed_v = 0
+		
 		
 func start_fly():
 	state = STATELIST.FLY
