@@ -103,7 +103,7 @@ func _process(delta):
 	screen_shake(delta)
 		
 func do_headbob(delta):
-	if target.velocity_h.length() > 1.0 and target.is_on_floor():
+	if target.velocity.length() > 1.0 and target.is_on_floor():
 		hb_lean_sin_progress += deg2rad(delta * hb_sin_speed * target.sprint_modifier)
 		if rad2deg(hb_lean_sin_progress) > 360:
 			hb_lean_sin_progress = 0
