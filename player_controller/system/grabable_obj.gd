@@ -106,3 +106,5 @@ func activate(adata):
 func wind_force_add(force):
 	external_force += force
 	
+func get_grabbed_status():
+	return grabbed

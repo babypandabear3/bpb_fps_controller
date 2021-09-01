@@ -18,6 +18,13 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0 )
 
 [node name="camera_root" type="Spatial" parent="bob_pivot/lean_pivot/rotation_helper_point"]
 
+[node name="ray_activate" type="RayCast" parent="bob_pivot/lean_pivot/rotation_helper_point/camera_root"]
+enabled = true
+cast_to = Vector3( 0, 0, -2 )
+
+[node name="holder" type="Spatial" parent="bob_pivot/lean_pivot/rotation_helper_point/camera_root"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5 )
+
 [node name="Camera" type="Camera" parent="bob_pivot/lean_pivot/rotation_helper_point/camera_root"]
 current = true
 far = 200.0

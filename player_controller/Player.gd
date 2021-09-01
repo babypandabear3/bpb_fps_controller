@@ -1,6 +1,11 @@
 #THIS CONTROLLER IS DESIGNED FOR 60 PHYSIC FPS
-
 extends KinematicBody
+
+signal body_just_landed
+signal body_just_jump
+signal body_just_crouch
+signal body_just_stand
+
 
 enum STATELIST {
 	WALK,
@@ -40,10 +45,13 @@ export (float) var on_slope_steep_speed = 1.0
 export (float) var slide_time = 1.2
 
 export (float) var throw_force = 10
+
 var body_height : int = BODY_HEIGHT_LIST.STAND
+var is_grabbing_object = false
 
 var jump_skip_timer = 0
 var jump_skip_timeout = 0.1
+var just_landed = false
 
 var dir = Vector3()
 var prev_vel_h = Vector3()
@@ -161,8 +169,7 @@ func _input(event):
 		else:
 			start_walk()
 			
-	
-		
+
 func _process(delta):
 	#GET USER INPUT VALUE
 	input_h = Input.get_action_strength("movement_right") - Input.get_action_strength("movement_left")
@@ -190,7 +197,6 @@ func _physics_process(delta):
 	if Input.is_action_just_pressed("movement_jump"):
 		input_jump_buffer = input_jump_timeout
 		
-		
 	match state:
 		STATELIST.WALK:
 			do_walk(delta)
@@ -204,13 +210,28 @@ func _physics_process(delta):
 			do_wallrun(delta)
 
 	if is_on_floor():
+		just_landed = false
+		if air_borne > 0:
+			emit_signal("body_just_landed")
+			just_landed = true
 		air_borne = 0.0
 		jump_count = 0
 	else:
 		air_borne += delta
 		if air_borne > coyote_time and jump_count == 0:
 			jump_count += 1
-		
+			
+	#RAY ACTIVATE CHECKING
+	if ray_activate.is_colliding():
+		var obj = ray_activate.get_collider()
+		if obj.has_method("get_grabbed_status"):
+			is_grabbing_object = obj.get_grabbed_status()
+		else:
+			is_grabbing_object = false
+	else:
+		is_grabbing_object = false
+			
+	
 func try_climb_stairs():
 	ray_stair1.force_update_transform()
 	ray_stair2.force_update_transform()
@@ -231,11 +252,21 @@ func try_climb_stairs():
 
 func body_height_crouch():
 	body_height = BODY_HEIGHT_LIST.CROUCH
+	
 
 func body_height_stand():
 	body_height = BODY_HEIGHT_LIST.STAND
 	sprint_modifier = sprint_modi_nonactive
-
+	
+func _on_AnimationPlayer_animation_finished(_anim_name):
+	call_deferred("emit_signal_body_height")
+	
+func emit_signal_body_height():
+	if body_height == BODY_HEIGHT_LIST.STAND:
+		emit_signal("body_just_stand")
+	elif body_height == BODY_HEIGHT_LIST.CROUCH:
+		emit_signal("body_just_crouch")
+		
 func start_walk():
 	state = STATELIST.WALK
 	
@@ -318,6 +349,7 @@ func do_walk(delta):
 		input_jump_buffer = 0
 		snap_vector = Vector3.ZERO
 		jump_count += 1
+		emit_signal("body_just_jump")
 	elif is_on_floor() and jump_skip_timer <= 0: 
 		#ON FLOOR
 		if floor_angle <= deg2rad(slope_limit): #STICKING ON FLOOR / SLOPE
@@ -344,6 +376,10 @@ func do_walk(delta):
 		velocity_h += impulse * Vector3(0,1,0)
 		velocity_v += impulse * Vector3(1,0,1)
 		impulse = Vector3.ZERO
+		
+	#IF JUST LANDED, HALVED HORIZONTAL VELOCITY SO PLAYER DON'T SLIDE WHEN JUMP TO MOVING PLATFORM
+	if just_landed:
+		velocity_h *= 0.5
 		
 	velocity = velocity_h + velocity_v
 
@@ -541,6 +577,8 @@ func start_wallrun():
 	automove_dir = velocity_h
 	automove_dir.y = 0
 	automove_dir = (automove_dir.slide(normal)).normalized()
+	automove_dir.y = 0
+	automove_dir = automove_dir.normalized()
 	
 	state = STATELIST.WALLRUN
 	if global_transform.basis.x.angle_to(normal) < deg2rad(90):
@@ -591,6 +629,16 @@ func ladder_add(par):
 func wind_force_add(force):
 	external_force += force
 
+#THESE ARE CALLED BY CAMERA ADDON
+func get_rotation_helper():
+	return rotation_helper
+
+func replace_ray_activate_holder(p_ray_activate, p_holder):
+	ray_activate.enabled = false
+	ray_activate = p_ray_activate
+	holder = p_holder
+	
+#PUBLIC FUNCTIONS
 func add_recoil(par, camera_recoil_force):
 	recoil = par
 	call_deferred("camera_recoil", camera_recoil_force)
@@ -604,3 +652,5 @@ func camera_recoil(force):
 
 func apply_central_impulse(par):
 	impulse = par
+
+

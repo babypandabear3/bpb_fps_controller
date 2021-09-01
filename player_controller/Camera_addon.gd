@@ -6,10 +6,11 @@ export (bool) var feat_lean = true
 export (bool) var feat_lean_on_wallrun = true
 export (bool) var feat_crouch_crawl = true
 export (float) var head_bob_h = 0.0
-export (float) var head_bob_v = 0.03
+export (float) var head_bob_v = 0.024
 export (float) var head_bob_rotation = 0.00
-export (float) var head_bob_speed = 10
+export (float) var head_bob_speed = 8
 export (float) var lean_angle = 10
+export (float) var lean_pivot_move_speed = 12
 
 var physic_fps : float = 0.0
 
@@ -35,7 +36,7 @@ var lean_speed = 6
 var lean_target = 0
 
 var lean_pivot_move_target = Vector3.ZERO
-var lean_pivot_move_speed = 6
+
 
 #CRAWL CROUCH
 var crawl_crouch = 0
@@ -51,6 +52,8 @@ onready var crouch_point = $bob_pivot/lean_pivot/rotation_helper_point/crouch_po
 onready var crawl_point = $bob_pivot/lean_pivot/rotation_helper_point/crawl_point
 onready var camera = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/Camera
 onready var ray_lean = $bob_pivot/ray_lean
+onready var ray_activate = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/ray_activate
+onready var holder = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/holder
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -60,7 +63,7 @@ func _ready():
 	target = get_node_or_null(follow_target)
 	if target == null:
 		target = get_parent()
-	target_rotation_helper = target.get_node("rotation_helper")
+	
 	physic_fps = ProjectSettings.get_setting("physics/common/physics_fps") - 0.5
 	global_transform = target.global_transform
 	
@@ -68,9 +71,20 @@ func _ready():
 	ray_crouch_point_R.add_exception(target)
 	ray_lean.add_exception(target)
 	
+	#DELAY PROCESS ONE FRAME
+	set_process(false)
+	call_deferred("activate_process")
+	
+func activate_process():
+	#DELAY PROCESS ONE FRAME SO target.get_rotation_helper() DOESN'T RETURN NULL
+	target_rotation_helper = target.get_rotation_helper()
+	ray_activate.add_exception(target)
+	target.replace_ray_activate_holder(ray_activate, holder)
+	set_process(true)
+	
 func _process(delta):
 	global_transform = global_transform.interpolate_with(target.global_transform, delta * physic_fps)
-	camera_root.rotation = target_rotation_helper.rotation
+	camera_root.rotation.x = lerp_angle(camera_root.rotation.x, target_rotation_helper.rotation.x, delta * physic_fps)
 	
 	#HEAD BOB
 	if feat_head_bob:
@@ -109,7 +123,10 @@ func do_headbob(delta):
 			hb_sin_progress = sin(hb_lean_sin_progress)
 	
 	bob_pivot.translation.x = lerp(0, head_bob_h, hb_sin_progress)
-	bob_pivot.translation.y = lerp(0, -head_bob_v, hb_sin_progress*2)
+	if target.body_height == target.BODY_HEIGHT_LIST.CROUCH :
+		bob_pivot.translation.y = lerp(0, -head_bob_v/2, hb_sin_progress*2)
+	else:
+		bob_pivot.translation.y = lerp(0, -head_bob_v, hb_sin_progress*2)
 	if head_bob_rotation != 0:
 		bob_pivot.rotation.z = lerp_angle(0, deg2rad(head_bob_rotation), hb_sin_progress)
 
