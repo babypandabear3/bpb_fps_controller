@@ -68,6 +68,8 @@ var climb_target = Vector3()
 var climb_timer = 0
 var climb_timeout = 0.6
 
+var climb_stair = false
+
 var automove_dir = Vector3()
 var slide_timer = 0
 
@@ -303,7 +305,7 @@ func do_walk(delta):
 		root_ray_stair.look_at(look_at_target, Vector3.UP)
 	
 	#DISABLE SNAP WHEN CLIMBING STAIR OR BEING AIR BORNE FOR TOO LONG
-	var climb_stair = try_climb_stairs()
+	climb_stair = try_climb_stairs()
 	if climb_stair or air_borne > air_borne_disable_snap:
 		snap_vector = Vector3()
 		
@@ -518,7 +520,7 @@ func do_slide(delta):
 		start_walk()
 	
 func is_wallrun_allowed():
-	if not is_on_floor() and is_on_wall() and Input.is_action_pressed("action_sprint") and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND:
+	if not is_on_floor() and is_on_wall() and Input.is_action_pressed("action_sprint") and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND and not climb_stair:
 		if ray_stair1.is_colliding() and ray_stair2.is_colliding():
 			var d1 : float = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
 			var d2 : float = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
@@ -535,7 +537,10 @@ func is_wallrun_allowed():
 	
 func start_wallrun():
 	var normal = get_slide_collision(0).normal
-	automove_dir = (-global_transform.basis.z.slide(normal)).normalized()
+	
+	automove_dir = velocity_h
+	automove_dir.y = 0
+	automove_dir = (automove_dir.slide(normal)).normalized()
 	
 	state = STATELIST.WALLRUN
 	if global_transform.basis.x.angle_to(normal) < deg2rad(90):
