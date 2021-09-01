@@ -26,7 +26,7 @@ export (bool) var air_control = false
 export (String, "C0.6", "C0.7", "C0.8", "C0.9") var crouch_anim = "C0.9"
 export (float) var speed_h_max = 360
 export (float) var speed_acc = 30
-export (float) var speed_deacc = 50
+export (float) var speed_deacc = 48
 export (float) var sprint_modi = 1.5
 export (float) var crouch_modi = 0.6
 export (float) var coyote_time : float = 0.2
@@ -216,7 +216,7 @@ func try_climb_stairs():
 	ray_stair2.force_raycast_update()
 	
 	var ret = false
-	if ray_stair2.is_colliding() and velocity_h.length() > 4.0:
+	if ray_stair2.is_colliding() and velocity_h.length() > 0.5:
 		if Vector3.UP.angle_to(ray_stair2.get_collision_normal()) > deg2rad(80):
 			if ray_stair1.is_colliding():
 				var d1 = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
@@ -362,7 +362,8 @@ func do_walk(delta):
 	
 	#CLIMB STAIR
 	if climb_stair:
-		var _ret = move_and_collide(Vector3.UP * 0.1, false)
+		var climb_stair_vec = ((velocity_h * Vector3(1,0,1)).normalized() + Vector3.UP).normalized() * 0.1
+		var _ret = move_and_collide(climb_stair_vec, false)
 	
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
@@ -517,7 +518,7 @@ func do_slide(delta):
 		start_walk()
 	
 func is_wallrun_allowed():
-	if not is_on_floor() and is_on_wall() and Input.is_action_pressed("action_sprint") and jump_skip_timer <= 0 :
+	if not is_on_floor() and is_on_wall() and Input.is_action_pressed("action_sprint") and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND:
 		if ray_stair1.is_colliding() and ray_stair2.is_colliding():
 			var d1 : float = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
 			var d2 : float = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())

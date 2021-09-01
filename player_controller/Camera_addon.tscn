@@ -8,13 +8,11 @@ script = ExtResource( 1 )
 [node name="bob_pivot" type="Spatial" parent="."]
 
 [node name="lean_pivot" type="Spatial" parent="bob_pivot"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0 )
 
 [node name="rotation_helper_point" type="Spatial" parent="bob_pivot/lean_pivot"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 
 [node name="crouch_point" type="Spatial" parent="bob_pivot/lean_pivot/rotation_helper_point"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0 )
 
 [node name="crawl_point" type="Spatial" parent="bob_pivot/lean_pivot/rotation_helper_point"]
 
@@ -24,7 +22,16 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 current = true
 far = 200.0
 
-[node name="ray_crouch_point" type="RayCast" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.3 )
+[node name="ray_lean" type="RayCast" parent="bob_pivot"]
+enabled = true
+cast_to = Vector3( 1, 0, 0 )
+
+[node name="ray_crouch_point_R" type="RayCast" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0, -0.3 )
+enabled = true
+cast_to = Vector3( 0, 0.4, 0 )
+
+[node name="ray_crouch_point_L" type="RayCast" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0, -0.3 )
 enabled = true
 cast_to = Vector3( 0, 0.4, 0 )

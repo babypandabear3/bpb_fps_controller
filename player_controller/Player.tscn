@@ -455,5 +455,3 @@ enabled = true
 cast_to = Vector3( 0, 0, -0.5 )
 
 [node name="Camera_addon" parent="." instance=ExtResource( 4 )]
-follow_target = NodePath("..")
-head_bob_speed = 2.7

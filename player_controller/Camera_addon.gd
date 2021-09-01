@@ -5,11 +5,11 @@ export (bool) var feat_head_bob = true
 export (bool) var feat_lean = true
 export (bool) var feat_lean_on_wallrun = true
 export (bool) var feat_crouch_crawl = true
-export (float) var head_bob_h = 0.02
-export (float) var head_bob_v = 0.02
-export (float) var head_bob_rotation = 0.01
+export (float) var head_bob_h = 0.0
+export (float) var head_bob_v = 0.03
+export (float) var head_bob_rotation = 0.00
 export (float) var head_bob_speed = 10
-export (float) var lean_angle = 15
+export (float) var lean_angle = 10
 
 var physic_fps : float = 0.0
 
@@ -34,6 +34,9 @@ var hb_sin_progress = 0
 var lean_speed = 6
 var lean_target = 0
 
+var lean_pivot_move_target = Vector3.ZERO
+var lean_pivot_move_speed = 6
+
 #CRAWL CROUCH
 var crawl_crouch = 0
 var crawl_crouch_speed = 6
@@ -42,10 +45,12 @@ var crawl_crouch_speed = 6
 onready var camera_root = $bob_pivot/lean_pivot/rotation_helper_point/camera_root
 onready var bob_pivot = $bob_pivot
 onready var lean_pivot = $bob_pivot/lean_pivot
-onready var ray_crouch_point = $ray_crouch_point
+onready var ray_crouch_point_L = $ray_crouch_point_L
+onready var ray_crouch_point_R = $ray_crouch_point_R
 onready var crouch_point = $bob_pivot/lean_pivot/rotation_helper_point/crouch_point
 onready var crawl_point = $bob_pivot/lean_pivot/rotation_helper_point/crawl_point
 onready var camera = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/Camera
+onready var ray_lean = $bob_pivot/ray_lean
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -59,7 +64,9 @@ func _ready():
 	physic_fps = ProjectSettings.get_setting("physics/common/physics_fps") - 0.5
 	global_transform = target.global_transform
 	
-	ray_crouch_point.add_exception(target)
+	ray_crouch_point_L.add_exception(target)
+	ray_crouch_point_R.add_exception(target)
+	ray_lean.add_exception(target)
 	
 func _process(delta):
 	global_transform = global_transform.interpolate_with(target.global_transform, delta * physic_fps)
@@ -101,7 +108,6 @@ func do_headbob(delta):
 			
 			hb_sin_progress = sin(hb_lean_sin_progress)
 	
-	
 	bob_pivot.translation.x = lerp(0, head_bob_h, hb_sin_progress)
 	bob_pivot.translation.y = lerp(0, -head_bob_v, hb_sin_progress*2)
 	if head_bob_rotation != 0:
@@ -110,12 +116,24 @@ func do_headbob(delta):
 
 func do_lean(_delta):
 	var lean_dir = 0
+	lean_pivot_move_target = Vector3.ZERO
 	if Input.is_action_pressed("action_lean_left"):
 		lean_dir += 1
+		ray_lean.cast_to = Vector3.LEFT
+		lean_pivot_move_target = Vector3.LEFT
+		ray_lean.force_raycast_update()
+		if ray_lean.is_colliding():
+			lean_pivot_move_target *= ray_lean.global_transform.origin.distance_to(ray_lean.get_collision_point()) * 0.5
 	if Input.is_action_pressed("action_lean_right"):
 		lean_dir -= 1
+		ray_lean.cast_to = Vector3.RIGHT
+		lean_pivot_move_target = Vector3.RIGHT
+		ray_lean.force_raycast_update()
+		if ray_lean.is_colliding():
+			lean_pivot_move_target *= ray_lean.global_transform.origin.distance_to(ray_lean.get_collision_point()) * 0.5
 		
 	lean_target = lean_angle * lean_dir
+	lean_pivot.translation = lean_pivot.translation.linear_interpolate(lean_pivot_move_target, lean_pivot_move_speed * _delta)
 	
 
 func do_lean_on_wallrun(_delta):
@@ -128,9 +146,13 @@ func do_lean_on_wallrun(_delta):
 	lean_target = lean_angle * lean_dir
 	
 func do_crouch_crawl(delta):
-	if ray_crouch_point.is_colliding() and target.body_height == target.BODY_HEIGHT_LIST.CROUCH:
-		camera_root.translation = crouch_point.translation.linear_interpolate(crawl_point.translation, crawl_crouch)
-		crawl_crouch = clamp(crawl_crouch + (delta * crawl_crouch_speed), 0, 1)
+	if target.body_height == target.BODY_HEIGHT_LIST.CROUCH :
+		if ray_crouch_point_L.is_colliding() or ray_crouch_point_R.is_colliding():
+			camera_root.translation = crouch_point.translation.linear_interpolate(crawl_point.translation, crawl_crouch)
+			crawl_crouch = clamp(crawl_crouch + (delta * crawl_crouch_speed), 0, 1)
+		else:
+			camera_root.translation = crouch_point.translation.linear_interpolate(crawl_point.translation, crawl_crouch)
+			crawl_crouch = clamp(crawl_crouch - (delta * crawl_crouch_speed), 0, 1)
 	else:
 		camera_root.translation = crouch_point.translation.linear_interpolate(crawl_point.translation, crawl_crouch)
 		crawl_crouch = clamp(crawl_crouch - (delta * crawl_crouch_speed), 0, 1)
