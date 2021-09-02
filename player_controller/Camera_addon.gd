@@ -54,6 +54,7 @@ onready var camera = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/Cam
 onready var ray_lean = $bob_pivot/ray_lean
 onready var ray_activate = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/ray_activate
 onready var holder = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/holder
+onready var ray_blink = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/ray_blink
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -101,6 +102,8 @@ func _process(delta):
 		lean_pivot.rotation.z = lerp_angle(lean_pivot.rotation.z, deg2rad(lean_target), delta * lean_speed)
 		
 	screen_shake(delta)
+	
+	do_input()
 		
 func do_headbob(delta):
 	if target.velocity.length() > 1.0 and target.is_on_floor():
@@ -186,3 +189,12 @@ func screen_shake(delta):
 	camera.rotation_degrees.z = noise.get_noise_3d(0, 0, time * time_scale) * max_r * shake
 	
 	if trauma > 0: trauma = clamp(trauma - (delta * decay), 0, 1)
+
+func do_input():
+	if Input.is_action_just_pressed("action_m1"):
+		#BLINK
+		var blink_dist = ray_blink.cast_to.length()
+		if ray_blink.is_colliding():
+			blink_dist = ray_blink.global_transform.origin.distance_to(ray_blink.get_collision_point()) - 0.4
+		var blink_target = ray_blink.global_transform.origin + (-ray_blink.global_transform.basis.z * blink_dist)
+		target.execute_pulled(blink_target, 45, 1)

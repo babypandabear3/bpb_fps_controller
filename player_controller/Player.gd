@@ -10,9 +10,10 @@ signal body_start_climb
 enum STATELIST {
 	WALK,
 	CLIMB,
-	FLY,
+	LADDER,
 	SLIDE,
 	WALLRUN,
+	PULLED,
 }
 
 enum BODY_HEIGHT_LIST {
@@ -83,20 +84,7 @@ var climb_stair = false
 var automove_dir = Vector3()
 var slide_timer = 0
 
-onready var ap = $AnimationPlayer
-onready var rotation_helper = $rotation_helper
-onready var eye_position = $rotation_helper/eye_position
-onready var holder = $rotation_helper/eye_position/holder
-onready var ray_activate = $rotation_helper/eye_position/ray_activate
-onready var ray_uncrouch = $ray_uncrouch
 
-onready var ray_climb1 = $ray_climb1
-onready var ray_climb2 = $ray_climb2
-onready var ray_climb3 = $ray_climb3
-
-onready var root_ray_stair = $root_ray_stair
-onready var ray_stair1 = $root_ray_stair/ray_stair1
-onready var ray_stair2 = $root_ray_stair/ray_stair2
 
 var recoil = Vector3.ZERO
 var recoil_deacc = 0.9
@@ -112,7 +100,12 @@ var jump_count = 0
 var wallrun_left = false
 var impulse = Vector3.ZERO
 
-onready var state = STATELIST.WALK
+var pulled_distance = 0
+var pulled_start = Vector3.ZERO
+var pulled_target = Vector3.ZERO
+var pulled_speed = 60
+var pulled_dir = Vector3.ZERO
+var pulled_timer = 0
 
 #SIGNAL LOGIC
 var ladder_count : int = 0
@@ -129,6 +122,22 @@ var input_jump_buffer : float = 0.0
 var input_jump_just_pressed : bool = false
 var input_sprint : bool = false
 var input_sprint_just_pressed : bool = false
+
+onready var state = STATELIST.WALK
+onready var ap = $AnimationPlayer
+onready var rotation_helper = $rotation_helper
+onready var eye_position = $rotation_helper/eye_position
+onready var holder = $rotation_helper/eye_position/holder
+onready var ray_activate = $rotation_helper/eye_position/ray_activate
+onready var ray_uncrouch = $ray_uncrouch
+
+onready var ray_climb1 = $ray_climb1
+onready var ray_climb2 = $ray_climb2
+onready var ray_climb3 = $ray_climb3
+
+onready var root_ray_stair = $root_ray_stair
+onready var ray_stair1 = $root_ray_stair/ray_stair1
+onready var ray_stair2 = $root_ray_stair/ray_stair2
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -174,10 +183,10 @@ func _input(event):
 	if Input.is_action_just_pressed("ui_cancel"):
 		get_tree().quit()
 		
-	#TOGGLE FLY MODE
+	#TOGGLE FLY (LADDER) MODE
 	if Input.is_action_just_pressed("action_toggle_fly"):
 		if state == STATELIST.WALK:
-			start_fly()
+			start_ladder()
 		else:
 			start_walk()
 			
@@ -214,12 +223,14 @@ func _physics_process(delta):
 			do_walk(delta)
 		STATELIST.CLIMB:
 			do_climb(delta)
-		STATELIST.FLY:
-			do_fly(delta)
+		STATELIST.LADDER:
+			do_ladder(delta)
 		STATELIST.SLIDE:
 			do_slide(delta)
 		STATELIST.WALLRUN:
 			do_wallrun(delta)
+		STATELIST.PULLED:
+			do_pulled(delta)
 
 	if is_on_floor():
 		just_landed = false
@@ -355,8 +366,7 @@ func do_walk(delta):
 	#VERTICAL VELOCITY
 	if input_jump_buffer > 0 and jump_count < jump_limit :
 		#START JUMP
-		speed_v = jump_force
-		velocity_v = vertical_vector * speed_v
+		velocity_v = vertical_vector * jump_force
 		jump_skip_timer = jump_skip_timeout
 		input_jump_buffer = 0
 		snap_vector = Vector3.ZERO
@@ -368,7 +378,7 @@ func do_walk(delta):
 			if floor_collision:
 				vertical_vector = -floor_collision.normal
 				snap_vector = -floor_collision.normal
-			speed_v = 0.1
+			velocity_v = vertical_vector * 0.1
 		else: #SLOPE TOO STEEP, SLIDE DOWN
 			if not climb_stair:
 				var slide_vector = floor_normal
@@ -376,17 +386,22 @@ func do_walk(delta):
 				slide_vector = slide_vector.normalized()
 				velocity_h = velocity_h.slide(slide_vector)
 				vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
-				speed_v = on_slope_steep_speed
-		velocity_v = vertical_vector * speed_v
+				velocity_v = vertical_vector * on_slope_steep_speed
 	else:
 		#ON AIR
-		speed_v = clamp(speed_v + (delta * gravity_acc), jump_force, gravity_force)
-		velocity_v = vertical_vector * speed_v
+		if velocity_v.length() < gravity_force:
+			velocity_v += vertical_vector * (delta * gravity_acc)
 	 
 	#ADD IMPULSE FROM apply_central_impulse FUNCTION
 	if impulse != Vector3.ZERO:
-		velocity_h += impulse * Vector3(0,1,0)
-		velocity_v += impulse * Vector3(1,0,1)
+		if impulse.y > 0:
+			jump_skip_timer = jump_skip_timeout
+			input_jump_buffer = 0
+			snap_vector = Vector3.ZERO
+			jump_count += 1
+			emit_signal("body_just_jump")
+		velocity_h += impulse * Vector3(1,0,1)
+		velocity_v += impulse * Vector3(0,1,0)
 		impulse = Vector3.ZERO
 		
 
@@ -401,7 +416,8 @@ func do_walk(delta):
 	if is_on_floor():
 		#IF JUST LANDED, HALVED HORIZONTAL VELOCITY SO PLAYER DON'T SLIDE WHEN JUMP TO MOVING PLATFORM
 		if just_landed:
-			velocity_h *= 0.5
+			if Vector2(input_h, input_v).length() < 0.2:
+				velocity_h *= 0.5
 		else:
 			velocity += get_floor_velocity() * delta
 		
@@ -450,10 +466,6 @@ func do_walk(delta):
 		if not ray_uncrouch.is_colliding(): #uncrouch if there's enough space above head
 			ap.play_backwards(crouch_anim)
 			
-	#CLIMBING
-	if Input.is_action_pressed("movement_jump") and not is_on_floor() and feat_climbing: #CLIMBING EDGE
-		if not ray_climb1.is_colliding() and ray_climb2.is_colliding() and ray_climb3.is_colliding():
-			start_climb()
 			
 	#SPRINT
 	if Input.is_action_pressed("action_sprint"):
@@ -466,7 +478,14 @@ func do_walk(delta):
 			
 		#WALLRUN
 		if is_wallrun_allowed() and feat_wallrun:
-			start_wallrun()
+			var wall_normal = get_slide_collision(0).normal
+			if global_transform.basis.z.angle_to(wall_normal) > deg2rad(10):
+				start_wallrun()
+			
+	#CLIMBING
+	if Input.is_action_pressed("movement_jump") and not is_on_floor() and feat_climbing: #CLIMBING EDGE
+		if not ray_climb1.is_colliding() and ray_climb2.is_colliding() and ray_climb3.is_colliding():
+			start_climb()
 	
 func start_climb():
 	#START CLIMBING LOGIC
@@ -497,17 +516,19 @@ func do_climb(delta):
 	climb_timer -= delta
 	if climb_timer <= 0:
 		start_walk()
-		speed_v = 0
+		velocity_v = Vector3.ZERO
 		
 	if global_transform.origin.distance_to(climb_target1) < 0.1:
 		start_walk()
-		speed_v = 0
+		velocity_v = Vector3.ZERO
 		
 		
-func start_fly():
-	state = STATELIST.FLY
+func start_ladder():
+	clear_velocity_h()
+	clear_velocity_v()
+	state = STATELIST.LADDER
 	
-func do_fly(delta):
+func do_ladder(delta):
 	#GET USER INPUT VALUE
 	
 	#DEFINE HORIZONTAL MOVEMENT VECTOR
@@ -558,20 +579,19 @@ func do_slide(delta):
 			if floor_collision:
 				vertical_vector = -floor_collision.normal
 				snap_vector = -floor_collision.normal
-			speed_v = 0.1
+			velocity_v = vertical_vector * 0.1
 		else: #SLOPE TOO STEEP, SLIDE DOWN
-			
-			var slide_vector = floor_normal
-			slide_vector.y = 0
-			slide_vector = slide_vector.normalized()
-			velocity_h = velocity_h.slide(slide_vector)
-			vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
-			speed_v = on_slope_steep_speed
-		velocity_v = vertical_vector * speed_v
+			if not climb_stair:
+				var slide_vector = floor_normal
+				slide_vector.y = 0
+				slide_vector = slide_vector.normalized()
+				velocity_h = velocity_h.slide(slide_vector)
+				vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
+				velocity_v = vertical_vector * on_slope_steep_speed
 	else:
 		#ON AIR
-		speed_v = clamp(speed_v + (delta * gravity_acc), jump_force, gravity_force)
-		velocity_v = vertical_vector * speed_v
+		if velocity_v.length() < gravity_force:
+			velocity_v += vertical_vector * (delta * gravity_acc)
 	
 	velocity = velocity_h + velocity_v
 	
@@ -580,6 +600,29 @@ func do_slide(delta):
 	prev_vel_v = velocity_v
 	
 	if slide_timer <= 0:
+		start_walk()
+
+func start_pulled():
+	state = STATELIST.PULLED
+	
+func do_pulled(delta):
+	pulled_dir = pulled_target - global_transform.origin
+	velocity_h = pulled_dir.normalized() * pulled_speed
+		
+	#VERTICAL VELOCITY
+	velocity_v = Vector3.ZERO
+	
+	velocity = velocity_h + velocity_v
+	
+	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
+	prev_vel_h = velocity_h
+	prev_vel_v = velocity_v
+	
+	pulled_timer -= delta
+	
+	if global_transform.origin.distance_to(pulled_start) > pulled_distance or pulled_timer < 0:
+		clear_velocity_h()
+		clear_velocity_v()
 		start_walk()
 	
 func is_wallrun_allowed():
@@ -649,7 +692,7 @@ func do_wallrun(delta):
 func ladder_add(par):
 	ladder_count += par
 	if ladder_count > 0:
-		start_fly()
+		start_ladder()
 	else:
 		start_walk()
 
@@ -680,4 +723,21 @@ func camera_recoil(force):
 func apply_central_impulse(par):
 	impulse = par
 
+func clear_velocity_h():
+	velocity_h = Vector3.ZERO
+	prev_vel_h = velocity_h
+	
+func clear_velocity_v():
+	velocity_v = Vector3.ZERO
+	prev_vel_v = velocity_v
 
+func back_to_walk():
+	start_walk()
+
+func execute_pulled(p_target, p_speed, p_max_time):
+	pulled_timer = p_max_time
+	pulled_start = global_transform.origin
+	pulled_target = p_target
+	pulled_speed = p_speed
+	pulled_distance = pulled_start.distance_to(pulled_target)
+	start_pulled()

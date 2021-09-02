@@ -29,6 +29,10 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5 )
 current = true
 far = 200.0
 
+[node name="ray_blink" type="RayCast" parent="bob_pivot/lean_pivot/rotation_helper_point/camera_root"]
+enabled = true
+cast_to = Vector3( 0, 0, -16 )
+
 [node name="ray_lean" type="RayCast" parent="bob_pivot"]
 enabled = true
 cast_to = Vector3( 1, 0, 0 )
