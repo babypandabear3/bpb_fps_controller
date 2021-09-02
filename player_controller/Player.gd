@@ -46,6 +46,7 @@ export (float) var on_slope_steep_speed = 1.0
 export (float) var slide_time = 1.2
 
 export (float) var throw_force = 10
+export (float) var bump_force = 10
 
 var body_height : int = BODY_HEIGHT_LIST.STAND
 var is_grabbing_object = false
@@ -435,6 +436,7 @@ func do_walk(delta):
 	
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
+	
 
 	### ACTIONS LOGIC ###
 	
@@ -486,6 +488,14 @@ func do_walk(delta):
 	if Input.is_action_pressed("movement_jump") and not is_on_floor() and feat_climbing: #CLIMBING EDGE
 		if not ray_climb1.is_colliding() and ray_climb2.is_colliding() and ray_climb3.is_colliding():
 			start_climb()
+	
+	#PUSH RIGIDBODY 
+	if is_on_wall() and bump_force > 0:
+		for i in get_slide_count():
+			if get_slide_collision(i).collider is RigidBody:
+				var o : RigidBody = get_slide_collision(i).collider
+				var bump_impulse = (o.global_transform.origin - global_transform.origin).normalized() * bump_force
+				o.apply_central_impulse(bump_impulse)
 	
 func start_climb():
 	#START CLIMBING LOGIC
@@ -606,7 +616,6 @@ func start_pulled():
 	state = STATELIST.PULLED
 	
 func do_pulled(delta):
-	pulled_dir = pulled_target - global_transform.origin
 	velocity_h = pulled_dir.normalized() * pulled_speed
 		
 	#VERTICAL VELOCITY
@@ -734,7 +743,8 @@ func clear_velocity_v():
 func back_to_walk():
 	start_walk()
 
-func execute_pulled(p_target, p_speed, p_max_time):
+func execute_pulled(p_target, p_dir,  p_speed, p_max_time):
+	pulled_dir = p_dir
 	pulled_timer = p_max_time
 	pulled_start = global_transform.origin
 	pulled_target = p_target

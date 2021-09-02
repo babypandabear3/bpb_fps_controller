@@ -191,10 +191,10 @@ func screen_shake(delta):
 	if trauma > 0: trauma = clamp(trauma - (delta * decay), 0, 1)
 
 func do_input():
-	if Input.is_action_just_pressed("action_m1"):
+	if Input.is_action_just_pressed("action_m1") and target.state != target.STATELIST.PULLED:
 		#BLINK
 		var blink_dist = ray_blink.cast_to.length()
 		if ray_blink.is_colliding():
 			blink_dist = ray_blink.global_transform.origin.distance_to(ray_blink.get_collision_point()) - 0.4
 		var blink_target = ray_blink.global_transform.origin + (-ray_blink.global_transform.basis.z * blink_dist)
-		target.execute_pulled(blink_target, 45, 1)
+		target.execute_pulled(blink_target, -ray_blink.global_transform.basis.z, 46, 1)

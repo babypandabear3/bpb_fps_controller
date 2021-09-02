@@ -391,6 +391,7 @@ transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, -0.5
 shape = SubResource( 1 )
 
 [node name="rotation_helper" type="Spatial" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0 )
 
 [node name="eye_position" type="Spatial" parent="rotation_helper"]
 
