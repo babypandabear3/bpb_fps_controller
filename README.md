@@ -45,7 +45,6 @@ There are several exported variables that can be changed to customize Player beh
 - Feat Wallrun : Allows player to run on wall while not on floor. To execute, run while on air and touching wall
 - Mouse Sensitivity : This control how resposive mouse look is
 - Air Control : By default set to false. If enabled Player have full control it's horizontal movement while on air as if it's on floor
-- Crouch Anim : Choose crouch animation, each have different height
 - Speed H Max : Maximum horizontal velocity speed
 - Speed Acc : Horizontal movement acceleration rate
 - Speed Deacc : Horizontal movement deacceleration rate
@@ -60,7 +59,7 @@ There are several exported variables that can be changed to customize Player beh
 - On Slope Steep Speed : how fast player will slide down steep slope
 - Slide Time : How long player will slide 
 - Throw Force : Force player use to throw grabbed object
-- Bump Force : When bump with Rigidbody, force is use to apply impulse / push it
+- Bump Force : Force applice to Rigidbody when player bumbp to it
 
 Camera_addon has several options that can be customized
 - Follow Target : Point it at Player's main Node (KinematicBody), if empty it will use parent node as target
@@ -73,7 +72,7 @@ Camera_addon has several options that can be customized
 - Head Bob Rotation : Head bob rotation
 - Head Bob Speed : Speed of head bobbing
 - Lean Angle : Maximum angle when leaning
-- Lean Pivot Move Speed : How fast leaning camera moves
+- Lean Pivot Move Speed : Camera movement speed when leaning
 ------------------------------------
 
 ##Important

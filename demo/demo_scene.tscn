@@ -63,6 +63,4 @@ ladder = true
 shape = SubResource( 1 )
 
 [node name="jump_pad" parent="." instance=ExtResource( 8 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 0 )
-force = Vector3( -10, 20, 0 )
-clear_velocity_h = true
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -6.11846, 0, -6.4887 )
