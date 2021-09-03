@@ -105,7 +105,8 @@ func try_action_m0_just_released():
 func try_action_m1_just_pressed():
 	blink_marker.show()
 	blink_marker_update = true
-	
+	if target_camera:
+		target_camera.tween_fov_to(80, 0.1)
 
 func try_action_m1_just_released():
 	blink_marker.hide()
@@ -116,5 +117,6 @@ func try_action_m1_just_released():
 		blink_dist = ray_blink.global_transform.origin.distance_to(ray_blink.get_collision_point()) - 0.4
 	var blink_target = ray_blink.global_transform.origin + (-ray_blink.global_transform.basis.z * blink_dist)
 	target_body.execute_pulled(blink_target, -ray_blink.global_transform.basis.z, 46, 1)
-
+	if target_camera:
+		target_camera.tween_fov_to_default(80, 0.5)
 

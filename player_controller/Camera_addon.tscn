@@ -35,3 +35,5 @@ cast_to = Vector3( 0, 0.4, 0 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0, -0.3 )
 enabled = true
 cast_to = Vector3( 0, 0.4, 0 )
+
+[node name="Tween_fov" type="Tween" parent="."]

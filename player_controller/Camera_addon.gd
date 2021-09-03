@@ -7,6 +7,7 @@ export (bool) var feat_head_bob = true
 export (bool) var feat_lean = true
 export (bool) var feat_lean_on_wallrun = true
 export (bool) var feat_crouch_crawl = true
+export (float) var fov_default = 70
 export (float) var head_bob_h = 0.0
 export (float) var head_bob_v = 0.024
 export (float) var head_bob_rotation = 0.00
@@ -54,9 +55,12 @@ onready var crawl_point = $bob_pivot/lean_pivot/rotation_helper_point/crawl_poin
 onready var camera = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/Camera
 onready var ray_lean = $bob_pivot/ray_lean
 
+onready var tween_fov = $Tween_fov
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	camera.current = true
+	camera.fov = fov_default
 	noise = OpenSimplexNoise.new()
 	set_as_toplevel(true)
 	target = get_node_or_null(follow_target)
@@ -186,3 +190,12 @@ func screen_shake(delta):
 
 func get_camera_root():
 	return camera_root
+
+func tween_fov_to(p_fov, p_tween_speed):
+	tween_fov.interpolate_property(camera, "fov", fov_default, p_fov, p_tween_speed, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween_fov.start()
+
+func tween_fov_to_default(p_fov, p_tween_speed):
+	tween_fov.interpolate_property(camera, "fov", p_fov, fov_default, p_tween_speed, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween_fov.start()
+
