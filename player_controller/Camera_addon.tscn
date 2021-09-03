@@ -15,8 +15,10 @@ script = ExtResource( 1 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0 )
 
 [node name="crawl_point" type="Spatial" parent="bob_pivot/lean_pivot/rotation_helper_point"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0 )
 
 [node name="camera_root" type="Spatial" parent="bob_pivot/lean_pivot/rotation_helper_point"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0 )
 
 [node name="Camera" type="Camera" parent="bob_pivot/lean_pivot/rotation_helper_point/camera_root"]
 current = true

@@ -45,6 +45,12 @@ var lean_pivot_move_target = Vector3.ZERO
 var crawl_crouch = 0
 var crawl_crouch_speed = 6
 
+#TWEEN FOV
+var tween_fov_speed = 0.0
+var tween_fov_target = 0.0
+var tween_fov_back_to_default = false
+var tween_wait_time = 0.0
+
 onready var camera_root = $bob_pivot/lean_pivot/rotation_helper_point/camera_root
 onready var bob_pivot = $bob_pivot
 onready var lean_pivot = $bob_pivot/lean_pivot
@@ -55,7 +61,9 @@ onready var crawl_point = $bob_pivot/lean_pivot/rotation_helper_point/crawl_poin
 onready var camera = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/Camera
 onready var ray_lean = $bob_pivot/ray_lean
 
+
 onready var tween_fov = $Tween_fov
+
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -174,9 +182,6 @@ func do_crouch_crawl(delta):
 	else:
 		camera_root.translation = crouch_point.translation.linear_interpolate(crawl_point.translation, crawl_crouch)
 		crawl_crouch = clamp(crawl_crouch - (delta * crawl_crouch_speed), 0, 1)
-
-func add_screen_shake(trauma_in):
-	trauma = clamp(trauma + trauma_in, 0, 1)
 	
 func screen_shake(delta):
 	time += delta
@@ -191,11 +196,22 @@ func screen_shake(delta):
 func get_camera_root():
 	return camera_root
 
+func add_screen_shake(trauma_in):
+	trauma = clamp(trauma + trauma_in, 0, 1)
+	
 func tween_fov_to(p_fov, p_tween_speed):
-	tween_fov.interpolate_property(camera, "fov", fov_default, p_fov, p_tween_speed, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween_fov.interpolate_property(camera, "fov", fov_default, p_fov, p_tween_speed, Tween.TRANS_LINEAR, Tween.EASE_OUT)
 	tween_fov.start()
 
 func tween_fov_to_default(p_fov, p_tween_speed):
-	tween_fov.interpolate_property(camera, "fov", p_fov, fov_default, p_tween_speed, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween_fov.interpolate_property(camera, "fov", p_fov, fov_default, p_tween_speed, Tween.TRANS_LINEAR, Tween.EASE_IN)
 	tween_fov.start()
 
+func tween_fov_then_back_default(p_fov, p_tween_speed_in, p_tween_speed_out, wait_time):
+	tween_fov.interpolate_property(camera, "fov", fov_default, p_fov, p_tween_speed_in, Tween.TRANS_CUBIC, Tween.EASE_OUT)
+	tween_fov.interpolate_property(camera, "fov", p_fov, fov_default, p_tween_speed_out, Tween.TRANS_BACK  , Tween.EASE_OUT, wait_time)
+	tween_fov.start()
+	
+func get_fov():
+	return camera.fov
+	

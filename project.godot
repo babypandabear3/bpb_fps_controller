@@ -18,10 +18,16 @@ _global_script_classes=[ {
 "class": "BPB_Fps_Controller",
 "language": "GDScript",
 "path": "res://player_controller/Player.gd"
+}, {
+"base": "Spatial",
+"class": "BPB_GameLogic_addon",
+"language": "GDScript",
+"path": "res://player_controller/GameLogic_addon.gd"
 } ]
 _global_script_class_icons={
 "BPB_Camera_addon": "",
-"BPB_Fps_Controller": ""
+"BPB_Fps_Controller": "",
+"BPB_GameLogic_addon": ""
 }
 
 [application]

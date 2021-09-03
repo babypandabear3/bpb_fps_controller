@@ -1,11 +1,15 @@
 extends Spatial
 
+class_name BPB_GameLogic_addon
+
 export (NodePath) var path_body
 export (NodePath) var path_camera
 export (bool) var feat_grab = true
 export (float) var throw_force = 10
-var target_body
-var target_camera
+
+var target_body : BPB_Fps_Controller
+var target_camera : BPB_Camera_addon
+
 var target
 var activate_data = {}
 
@@ -16,6 +20,7 @@ onready var grab_point = $root/grab_point
 onready var blink_marker = $blink_marker
 
 var blink_marker_update = false
+var blink_fov = 30
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -64,6 +69,8 @@ func _process(_delta):
 	if blink_marker_update:
 		update_blink_marker()
 		
+	
+		
 func update_blink_marker():
 	if ray_blink.is_colliding():
 		blink_marker.global_transform.origin = ray_blink.get_collision_point()
@@ -105,10 +112,10 @@ func try_action_m0_just_released():
 func try_action_m1_just_pressed():
 	blink_marker.show()
 	blink_marker_update = true
-	if target_camera:
-		target_camera.tween_fov_to(80, 0.1)
+	
 
 func try_action_m1_just_released():
+	blink_fov = target_camera.get_fov() + 30
 	blink_marker.hide()
 	blink_marker_update = false
 	
@@ -118,5 +125,5 @@ func try_action_m1_just_released():
 	var blink_target = ray_blink.global_transform.origin + (-ray_blink.global_transform.basis.z * blink_dist)
 	target_body.execute_pulled(blink_target, -ray_blink.global_transform.basis.z, 46, 1)
 	if target_camera:
-		target_camera.tween_fov_to_default(80, 0.5)
-
+		target_camera.tween_fov_then_back_default(blink_fov, 0.3, 0.5, 0.1)
+		
