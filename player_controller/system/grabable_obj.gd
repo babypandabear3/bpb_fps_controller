@@ -52,7 +52,7 @@ func _physics_process(delta):
 func activate(adata):
 	if not grabbed:
 		grabbed = true
-		target_obj = adata.holder
+		target_obj = adata.grab_point
 		target_rotation_body = adata.body
 		gravity_scale = 0
 		angular_velocity = Vector3()

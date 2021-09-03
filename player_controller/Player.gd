@@ -1,6 +1,8 @@
 #THIS CONTROLLER IS DESIGNED FOR 60 PHYSIC FPS
 extends KinematicBody
 
+class_name BPB_Fps_Controller
+
 signal body_just_landed
 signal body_just_jump
 signal body_just_crouch
@@ -42,10 +44,7 @@ export (float) var jump_force = -6
 export (int) var jump_limit = 1
 export (float) var slope_limit = 46.0
 export (float) var on_slope_steep_speed = 1.0
-
 export (float) var slide_time = 1.2
-
-export (float) var throw_force = 10
 export (float) var bump_force = 10
 
 var body_height : int = BODY_HEIGHT_LIST.STAND
@@ -84,8 +83,6 @@ var climb_stair = false
 
 var automove_dir = Vector3()
 var slide_timer = 0
-
-
 
 var recoil = Vector3.ZERO
 var recoil_deacc = 0.9
@@ -127,9 +124,8 @@ var input_sprint_just_pressed : bool = false
 onready var state = STATELIST.WALK
 onready var ap = $AnimationPlayer
 onready var rotation_helper = $rotation_helper
-onready var eye_position = $rotation_helper/eye_position
-onready var holder = $rotation_helper/eye_position/holder
-onready var ray_activate = $rotation_helper/eye_position/ray_activate
+onready var camera_root = $rotation_helper/camera_root
+
 onready var ray_uncrouch = $ray_uncrouch
 
 onready var ray_climb1 = $ray_climb1
@@ -142,7 +138,7 @@ onready var ray_stair2 = $root_ray_stair/ray_stair2
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	ray_activate.add_exception(self)
+
 	ray_climb1.add_exception(self)
 	ray_climb2.add_exception(self)
 	ray_climb3.add_exception(self)
@@ -162,13 +158,6 @@ func _ready():
 			climb_y_addition = 0.5
 		"C0.9":
 			climb_y_addition = 0.6
-	
-func get_default_activate_data():
-	activate_data.mouse_sensitivity = MOUSE_SENSITIVITY
-	activate_data.body = self
-	activate_data.holder = holder
-	activate_data.release_force = Vector3.ZERO
-	return activate_data
 	
 func _input(event):
 	#MOUSE CAMERA
@@ -244,16 +233,6 @@ func _physics_process(delta):
 		air_borne += delta
 		if air_borne > coyote_time and jump_count == 0:
 			jump_count += 1
-			
-	#RAY ACTIVATE CHECKING
-	if ray_activate.is_colliding():
-		var obj = ray_activate.get_collider()
-		if obj.has_method("get_grabbed_status"):
-			is_grabbing_object = obj.get_grabbed_status()
-		else:
-			is_grabbing_object = false
-	else:
-		is_grabbing_object = false
 			
 	
 func try_climb_stairs():
@@ -331,8 +310,8 @@ func do_walk(delta):
 		floor_prev_rot = null
 		
 	#DEFINE HORIZONTAL MOVEMENT VECTOR
-	var dir_x = eye_position.global_transform.basis.x * input_h
-	var dir_z = -eye_position.global_transform.basis.z * input_v
+	var dir_x = camera_root.global_transform.basis.x * input_h
+	var dir_z = -camera_root.global_transform.basis.z * input_v
 	var horizontal_vector = (dir_x + dir_z).slide(floor_normal).normalized()
 	
 	#HORIZONTAL VELOCITY
@@ -439,22 +418,6 @@ func do_walk(delta):
 	
 
 	### ACTIONS LOGIC ###
-	
-	#GRAB / RELEASE
-	if Input.is_action_just_pressed("action_activate"):
-		if ray_activate.is_colliding():
-			var obj = ray_activate.get_collider()
-			if obj.has_method("activate"):
-				obj.activate(get_default_activate_data())
-	
-	#THROW GRABBED OBJECT
-	if Input.is_action_just_pressed("action_m0"):
-		if ray_activate.is_colliding():
-			var obj = ray_activate.get_collider()
-			if obj.has_method("activate"):
-				var adata = get_default_activate_data()
-				adata.release_force = -eye_position.global_transform.basis.z * throw_force
-				obj.activate(adata)
 				
 	#TOGGLE CROUCH
 	if Input.is_action_just_pressed("action_crouch_toggle") and feat_crouching:
@@ -542,8 +505,8 @@ func do_ladder(delta):
 	#GET USER INPUT VALUE
 	
 	#DEFINE HORIZONTAL MOVEMENT VECTOR
-	var dir_x = eye_position.global_transform.basis.x * input_h
-	var dir_z = -eye_position.global_transform.basis.z * input_v
+	var dir_x = camera_root.global_transform.basis.x * input_h
+	var dir_z = -camera_root.global_transform.basis.z * input_v
 	var horizontal_vector = (dir_x + dir_z).normalized()
 	
 	#HORIZONTAL VELOCITY
@@ -712,11 +675,6 @@ func wind_force_add(force):
 func get_rotation_helper():
 	return rotation_helper
 
-func replace_ray_activate_holder(p_ray_activate, p_holder):
-	ray_activate.enabled = false
-	ray_activate = p_ray_activate
-	holder = p_holder
-	
 #PUBLIC FUNCTIONS
 func add_recoil(par, camera_recoil_force):
 	recoil = par
@@ -751,3 +709,6 @@ func execute_pulled(p_target, p_dir,  p_speed, p_max_time):
 	pulled_speed = p_speed
 	pulled_distance = pulled_start.distance_to(pulled_target)
 	start_pulled()
+
+func get_camera_root():
+	return camera_root

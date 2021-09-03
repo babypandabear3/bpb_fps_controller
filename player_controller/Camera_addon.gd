@@ -1,5 +1,7 @@
 extends Spatial
 
+class_name BPB_Camera_addon
+
 export (NodePath) var follow_target
 export (bool) var feat_head_bob = true
 export (bool) var feat_lean = true
@@ -42,7 +44,6 @@ var lean_pivot_move_target = Vector3.ZERO
 var crawl_crouch = 0
 var crawl_crouch_speed = 6
 
-
 onready var camera_root = $bob_pivot/lean_pivot/rotation_helper_point/camera_root
 onready var bob_pivot = $bob_pivot
 onready var lean_pivot = $bob_pivot/lean_pivot
@@ -52,9 +53,6 @@ onready var crouch_point = $bob_pivot/lean_pivot/rotation_helper_point/crouch_po
 onready var crawl_point = $bob_pivot/lean_pivot/rotation_helper_point/crawl_point
 onready var camera = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/Camera
 onready var ray_lean = $bob_pivot/ray_lean
-onready var ray_activate = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/ray_activate
-onready var holder = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/holder
-onready var ray_blink = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/ray_blink
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -79,8 +77,6 @@ func _ready():
 func activate_process():
 	#DELAY PROCESS ONE FRAME SO target.get_rotation_helper() DOESN'T RETURN NULL
 	target_rotation_helper = target.get_rotation_helper()
-	ray_activate.add_exception(target)
-	target.replace_ray_activate_holder(ray_activate, holder)
 	set_process(true)
 	
 func _process(delta):
@@ -102,8 +98,6 @@ func _process(delta):
 		lean_pivot.rotation.z = lerp_angle(lean_pivot.rotation.z, deg2rad(lean_target), delta * lean_speed)
 		
 	screen_shake(delta)
-	
-	do_input()
 		
 func do_headbob(delta):
 	if target.velocity.length() > 1.0 and target.is_on_floor():
@@ -190,11 +184,5 @@ func screen_shake(delta):
 	
 	if trauma > 0: trauma = clamp(trauma - (delta * decay), 0, 1)
 
-func do_input():
-	if Input.is_action_just_pressed("action_m1") and target.state != target.STATELIST.PULLED:
-		#BLINK
-		var blink_dist = ray_blink.cast_to.length()
-		if ray_blink.is_colliding():
-			blink_dist = ray_blink.global_transform.origin.distance_to(ray_blink.get_collision_point()) - 0.4
-		var blink_target = ray_blink.global_transform.origin + (-ray_blink.global_transform.basis.z * blink_dist)
-		target.execute_pulled(blink_target, -ray_blink.global_transform.basis.z, 46, 1)
+func get_camera_root():
+	return camera_root

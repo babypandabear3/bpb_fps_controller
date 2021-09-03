@@ -8,6 +8,22 @@
 
 config_version=4
 
+_global_script_classes=[ {
+"base": "Spatial",
+"class": "BPB_Camera_addon",
+"language": "GDScript",
+"path": "res://player_controller/Camera_addon.gd"
+}, {
+"base": "KinematicBody",
+"class": "BPB_Fps_Controller",
+"language": "GDScript",
+"path": "res://player_controller/Player.gd"
+} ]
+_global_script_class_icons={
+"BPB_Camera_addon": "",
+"BPB_Fps_Controller": ""
+}
+
 [application]
 
 config/name="Bpb Fps Controller"
