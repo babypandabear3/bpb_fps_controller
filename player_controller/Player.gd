@@ -84,9 +84,6 @@ var climb_stair = false
 var automove_dir = Vector3()
 var slide_timer = 0
 
-var recoil = Vector3.ZERO
-var recoil_deacc = 0.9
-
 var floor_angle = 0.0
 var floor_collision = null
 var floor_normal = Vector3.UP
@@ -401,11 +398,6 @@ func do_walk(delta):
 		else:
 			velocity += get_floor_velocity() * delta
 		
-	#RECOIL
-	var recoil_force = (global_transform.basis.x * recoil.x) + (global_transform.basis.y * recoil.y) + (global_transform.basis.z * recoil.z)
-	velocity += recoil_force * delta * 60
-	recoil *= recoil_deacc * delta * 60
-		
 	var _vel = move_and_slide_with_snap(velocity, snap_vector, Vector3.UP, true, 4, deg2rad(45), false)
 	
 	#CLIMB STAIR
@@ -676,10 +668,6 @@ func get_rotation_helper():
 	return rotation_helper
 
 #PUBLIC FUNCTIONS
-func add_recoil(par, camera_recoil_force):
-	recoil = par
-	call_deferred("camera_recoil", camera_recoil_force)
-
 func camera_recoil(force):
 	var ry = rand_range(-force, force)
 	var rx = rand_range(-force, force)

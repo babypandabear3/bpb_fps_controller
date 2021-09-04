@@ -4,6 +4,7 @@
 
 [node name="Camera_addon" type="Spatial"]
 script = ExtResource( 1 )
+head_bob = 0.026
 
 [node name="bob_pivot" type="Spatial" parent="."]
 

@@ -8,11 +8,9 @@ export (bool) var feat_lean = true
 export (bool) var feat_lean_on_wallrun = true
 export (bool) var feat_crouch_crawl = true
 export (float) var fov_default = 70
-export (float) var head_bob_h = 0.0
-export (float) var head_bob_v = 0.024
-export (float) var head_bob_rotation = 0.00
+export (float) var head_bob = 0.024
 export (float) var head_bob_speed = 8
-export (float) var lean_angle = 10
+export (float) var lean_angle = 6
 export (float) var lean_pivot_move_speed = 12
 
 var physic_fps : float = 0.0
@@ -31,7 +29,7 @@ var target_rotation_helper
 
 #HEAD BOB
 var hb_sin_speed = 60 * head_bob_speed
-var hb_lean_sin_progress = 0
+var hb_deg_sin_progress = 0
 var hb_sin_progress = 0
 
 #LEAN
@@ -113,31 +111,28 @@ func _process(delta):
 		
 func do_headbob(delta):
 	if target.velocity.length() > 1.0 and target.is_on_floor():
-		hb_lean_sin_progress += deg2rad(delta * hb_sin_speed * target.sprint_modifier)
-		if rad2deg(hb_lean_sin_progress) > 360:
-			hb_lean_sin_progress = 0
-		hb_sin_progress = sin(hb_lean_sin_progress)
+		hb_deg_sin_progress += deg2rad(delta * hb_sin_speed * target.sprint_modifier)
+		if rad2deg(hb_deg_sin_progress) > 360:
+			hb_deg_sin_progress = 0
+		hb_sin_progress = sin(hb_deg_sin_progress)
 	else:
-		if hb_lean_sin_progress != 0:
-			if rad2deg(hb_lean_sin_progress) < 180 and hb_lean_sin_progress != 0:
-				hb_lean_sin_progress += deg2rad(delta * hb_sin_speed)
-				if rad2deg(hb_lean_sin_progress) > 180:
-					hb_lean_sin_progress = 0
+		if hb_deg_sin_progress != 0:
+			if rad2deg(hb_deg_sin_progress) < 180 and hb_deg_sin_progress != 0:
+				hb_deg_sin_progress += deg2rad(delta * hb_sin_speed)
+				if rad2deg(hb_deg_sin_progress) > 180:
+					hb_deg_sin_progress = 0
 
-			elif rad2deg(hb_lean_sin_progress) < 360 and hb_lean_sin_progress != 0:
-				hb_lean_sin_progress += deg2rad(delta * hb_sin_speed)
-				if rad2deg(hb_lean_sin_progress) > 360:
-					hb_lean_sin_progress = 0
+			elif rad2deg(hb_deg_sin_progress) < 360 and hb_deg_sin_progress != 0:
+				hb_deg_sin_progress += deg2rad(delta * hb_sin_speed)
+				if rad2deg(hb_deg_sin_progress) > 360:
+					hb_deg_sin_progress = 0
 			
-			hb_sin_progress = sin(hb_lean_sin_progress)
+			hb_sin_progress = sin(hb_deg_sin_progress)
 	
-	bob_pivot.translation.x = lerp(0, head_bob_h, hb_sin_progress)
 	if target.body_height == target.BODY_HEIGHT_LIST.CROUCH :
-		bob_pivot.translation.y = lerp(0, -head_bob_v/2, hb_sin_progress*2)
+		bob_pivot.translation.y = lerp(0, -head_bob/2, hb_sin_progress*2)
 	else:
-		bob_pivot.translation.y = lerp(0, -head_bob_v, hb_sin_progress*2)
-	if head_bob_rotation != 0:
-		bob_pivot.rotation.z = lerp_angle(0, deg2rad(head_bob_rotation), hb_sin_progress)
+		bob_pivot.translation.y = lerp(0, -head_bob, hb_sin_progress*2)
 
 
 func do_lean(_delta):
