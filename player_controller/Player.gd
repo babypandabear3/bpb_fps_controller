@@ -7,7 +7,16 @@ signal body_just_landed
 signal body_just_jump
 signal body_just_crouch
 signal body_just_stand
-signal body_start_climb
+signal body_climb_start
+signal body_climb_end
+signal body_ladder_start
+signal body_ladder_end
+signal body_slide_start
+signal body_slide_end
+signal body_pulled_start
+signal body_pulled_end
+signal body_wallrun_start
+signal body_wallrun_end
 
 enum STATELIST {
 	WALK,
@@ -28,6 +37,8 @@ export (bool) var feat_crouching = true
 export (bool) var feat_climbing = true
 export (bool) var feat_slide = true
 export (bool) var feat_wallrun = true
+export (bool) var stand_after_slide = true
+export (bool) var stand_after_climb = true
 
 export (float) var MOUSE_SENSITIVITY = 0.07
 export (bool) var air_control = false
@@ -67,7 +78,6 @@ var on_floor_vertical_speed = 0.1
 var snap_vector = Vector3.DOWN
 
 var speed_v = 0
-var sprint_enabled = false
 var sprint_modifier = 1
 var sprint_modi_nonactive = 1.0
 
@@ -117,6 +127,8 @@ var input_jump_buffer : float = 0.0
 var input_jump_just_pressed : bool = false
 var input_sprint : bool = false
 var input_sprint_just_pressed : bool = false
+var input_crouch_just_pressed : bool = false
+var input_jump_pressed : bool = false
 
 onready var state = STATELIST.WALK
 onready var ap = $AnimationPlayer
@@ -166,6 +178,44 @@ func _input(event):
 		camera_rot.x = clamp(camera_rot.x, -70, 70)
 		rotation_helper.rotation_degrees = camera_rot
 		
+func _process(delta):
+	#TIMER
+	if jump_skip_timer > 0:
+		jump_skip_timer -= delta
+		
+	if input_jump_buffer > 0:
+		input_jump_buffer -= delta
+		
+	if slide_timer > 0:
+		slide_timer -= delta
+	
+func user_input():
+	input_sprint = false
+	input_sprint_just_pressed = false
+	input_crouch_just_pressed = false
+	input_jump_pressed = false
+	
+	input_h = Input.get_action_strength("movement_right") - Input.get_action_strength("movement_left")
+	input_v = Input.get_action_strength("movement_forward") - Input.get_action_strength("movement_backward")
+	
+	#SPRINT - STOP
+	if Input.is_action_just_released("action_sprint"):
+		input_sprint = false
+		
+	#INPUT JUST PRESSED
+	if Input.is_action_just_pressed("movement_jump"):
+		input_jump_buffer = input_jump_timeout
+		
+	if Input.is_action_pressed("movement_jump"):
+		input_jump_pressed = true
+		
+	if Input.is_action_just_pressed("action_crouch_toggle"):
+		input_crouch_just_pressed = true
+		
+	#SPRINT
+	if Input.is_action_pressed("action_sprint"):
+		input_sprint = true
+		
 	#PRESS ESC TO QUIT GAME
 	if Input.is_action_just_pressed("ui_cancel"):
 		get_tree().quit()
@@ -176,35 +226,11 @@ func _input(event):
 			start_ladder()
 		else:
 			start_walk()
-			
-
-func _process(delta):
-	#GET USER INPUT VALUE
-	input_h = Input.get_action_strength("movement_right") - Input.get_action_strength("movement_left")
-	input_v = Input.get_action_strength("movement_forward") - Input.get_action_strength("movement_backward")
-	
-	
-	#SPRINT - STOP
-	if Input.is_action_just_released("action_sprint"):
-		sprint_enabled = false
-		sprint_modifier = sprint_modi_nonactive
-		
-	#TIMER
-	if jump_skip_timer > 0:
-		jump_skip_timer -= delta
-		
-	if input_jump_buffer > 0:
-		input_jump_buffer -= delta
-		
-	if slide_timer > 0:
-		slide_timer -= delta
-		
 		
 func _physics_process(delta):
-	#INPUT JUST PRESSED
-	if Input.is_action_just_pressed("movement_jump"):
-		input_jump_buffer = input_jump_timeout
-		
+	#GET USER INPUT VALUE
+	user_input()
+	
 	match state:
 		STATELIST.WALK:
 			do_walk(delta)
@@ -270,7 +296,20 @@ func emit_signal_body_height():
 func start_walk():
 	state = STATELIST.WALK
 	
+	if stand_after_slide:
+		if body_height != BODY_HEIGHT_LIST.STAND:
+			body_height = BODY_HEIGHT_LIST.UNCROUCHING
+			
+	if stand_after_climb:
+		if body_height != BODY_HEIGHT_LIST.STAND:
+			body_height = BODY_HEIGHT_LIST.UNCROUCHING
+	
 func do_walk(delta):
+	if input_sprint:
+		sprint_modifier = sprint_modi
+	else:
+		sprint_modifier = sprint_modi_nonactive
+		
 	#DEFAULT VERTICAL MOVEMENT VALUE
 	floor_normal = Vector3.UP
 	vertical_vector = Vector3.DOWN
@@ -381,8 +420,6 @@ func do_walk(delta):
 		velocity_v += impulse * Vector3(0,1,0)
 		impulse = Vector3.ZERO
 		
-
-		
 	velocity = velocity_h + velocity_v
 
 	#ADD EXTERNAL FORCE TO OVERALL VELOCITY
@@ -408,41 +445,10 @@ func do_walk(delta):
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
 	
-
-	### ACTIONS LOGIC ###
-				
-	#TOGGLE CROUCH
-	if Input.is_action_just_pressed("action_crouch_toggle") and feat_crouching:
-		if body_height == BODY_HEIGHT_LIST.STAND:
-			ap.play(crouch_anim)
-		else:
-			body_height = BODY_HEIGHT_LIST.UNCROUCHING
-			
 	#UNCROUCHING LOGIC
 	if body_height == BODY_HEIGHT_LIST.UNCROUCHING:
 		if not ray_uncrouch.is_colliding(): #uncrouch if there's enough space above head
 			ap.play_backwards(crouch_anim)
-			
-			
-	#SPRINT
-	if Input.is_action_pressed("action_sprint"):
-		sprint_enabled = true
-		sprint_modifier = sprint_modi
-		
-		#SLIDE
-		if body_height == BODY_HEIGHT_LIST.STAND and Input.is_action_just_pressed("action_crouch_toggle") and feat_slide:
-			start_slide()
-			
-		#WALLRUN
-		if is_wallrun_allowed() and feat_wallrun:
-			var wall_normal = get_slide_collision(0).normal
-			if global_transform.basis.z.angle_to(wall_normal) > deg2rad(10):
-				start_wallrun()
-			
-	#CLIMBING
-	if Input.is_action_pressed("movement_jump") and not is_on_floor() and feat_climbing: #CLIMBING EDGE
-		if not ray_climb1.is_colliding() and ray_climb2.is_colliding() and ray_climb3.is_colliding():
-			start_climb()
 	
 	#PUSH RIGIDBODY 
 	if is_on_wall() and bump_force > 0:
@@ -451,6 +457,28 @@ func do_walk(delta):
 				var o : RigidBody = get_slide_collision(i).collider
 				var bump_impulse = (o.global_transform.origin - global_transform.origin).normalized() * bump_force
 				o.apply_central_impulse(bump_impulse)
+				
+	#CROUCHING
+	if input_crouch_just_pressed and feat_crouching:
+		if body_height == BODY_HEIGHT_LIST.STAND:
+			ap.play(crouch_anim)
+		else:
+			body_height = BODY_HEIGHT_LIST.UNCROUCHING
+			
+	#SLIDE
+	if input_sprint and body_height == BODY_HEIGHT_LIST.STAND and input_crouch_just_pressed and is_on_floor() and feat_slide:
+		start_slide()
+		
+	#WALLRUN
+	if input_sprint and is_wallrun_allowed() and feat_wallrun:
+		var wall_normal = get_slide_collision(0).normal
+		if global_transform.basis.z.angle_to(wall_normal) > deg2rad(10):
+			start_wallrun()
+			
+	#CLIMBING
+	if input_jump_pressed and not is_on_floor() and feat_climbing: #CLIMBING EDGE
+		if not ray_climb1.is_colliding() and ray_climb2.is_colliding() and ray_climb3.is_colliding():
+			start_climb()
 	
 func start_climb():
 	#START CLIMBING LOGIC
@@ -462,7 +490,7 @@ func start_climb():
 	climb_timer = climb_timeout
 	if body_height != BODY_HEIGHT_LIST.CROUCH:
 		ap.play(crouch_anim)
-	emit_signal("body_start_climb")
+	emit_signal("body_climb_start")
 	
 func do_climb(delta):
 	if climb_phase == 0:
@@ -480,18 +508,23 @@ func do_climb(delta):
 	
 	climb_timer -= delta
 	if climb_timer <= 0:
+		emit_signal("body_climb_end")
 		start_walk()
 		velocity_v = Vector3.ZERO
 		
+		
 	if global_transform.origin.distance_to(climb_target1) < 0.1:
+		emit_signal("body_climb_end")
 		start_walk()
 		velocity_v = Vector3.ZERO
+		
 		
 		
 func start_ladder():
 	clear_velocity_h()
 	clear_velocity_v()
 	state = STATELIST.LADDER
+	emit_signal("body_ladder_start")
 	
 func do_ladder(delta):
 	#GET USER INPUT VALUE
@@ -514,7 +547,6 @@ func do_ladder(delta):
 			#INCREASE MOVEMENT VECTOR BY ADDING NEW MOVEMENT VECTOR TO PREVIOS FRAME HORIZONTAL VELOCITY
 			velocity_h = prev_vel_h + (horizontal_vector * speed_acc * delta)
 		
-	
 	#VERTICAL VELOCITY
 	velocity_v = Vector3.ZERO
 	
@@ -528,6 +560,9 @@ func start_slide():
 	automove_dir = -global_transform.basis.z
 	slide_timer = slide_time
 	state = STATELIST.SLIDE
+	emit_signal("body_slide_start")
+	if body_height == BODY_HEIGHT_LIST.STAND:
+		ap.play(crouch_anim)
 	
 func do_slide(delta):
 	sprint_modifier = sprint_modi
@@ -565,10 +600,13 @@ func do_slide(delta):
 	prev_vel_v = velocity_v
 	
 	if slide_timer <= 0:
+		emit_signal("body_slide_end")
 		start_walk()
+		
 
 func start_pulled():
 	state = STATELIST.PULLED
+	emit_signal("body_pulled_start")
 	
 func do_pulled(delta):
 	velocity_h = pulled_dir.normalized() * pulled_speed
@@ -587,10 +625,12 @@ func do_pulled(delta):
 	if global_transform.origin.distance_to(pulled_start) > pulled_distance or pulled_timer < 0:
 		clear_velocity_h()
 		clear_velocity_v()
+		emit_signal("body_pulled_end")
 		start_walk()
+		
 	
 func is_wallrun_allowed():
-	if not is_on_floor() and is_on_wall() and Input.is_action_pressed("action_sprint") and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND and not climb_stair:
+	if input_sprint and  not is_on_floor() and is_on_wall() and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND and not climb_stair:
 		if ray_stair1.is_colliding() and ray_stair2.is_colliding():
 			var d1 : float = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
 			var d2 : float = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
@@ -619,11 +659,14 @@ func start_wallrun():
 		wallrun_left = true
 	else:
 		wallrun_left = false
+	emit_signal("body_wallrun_start")
 	
 func do_wallrun(delta):
 	if not is_wallrun_allowed():
+		emit_signal("body_wallrun_end")
 		start_walk()
 		return
+		
 	var normal = get_slide_collision(0).normal
 	sprint_modifier = sprint_modi
 	if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
@@ -636,14 +679,15 @@ func do_wallrun(delta):
 	
 	velocity_v = Vector3.ZERO
 	
-	if Input.is_action_just_pressed("movement_jump"):
+	if input_jump_buffer > 0:
 		#START JUMP
 		speed_v = jump_force
 		velocity_v = vertical_vector * speed_v
 		jump_skip_timer = jump_skip_timeout
 		input_jump_buffer = 0
 		velocity_h += normal * (speed_h_max * sprint_modifier * delta)
-		
+		jump_count = 1
+		emit_signal("body_just_jump")
 	
 	velocity = velocity_h + velocity_v
 	
@@ -658,14 +702,18 @@ func ladder_add(par):
 	if ladder_count > 0:
 		start_ladder()
 	else:
+		emit_signal("body_ladder_end")
 		start_walk()
 
 func wind_force_add(force):
 	external_force += force
 
-#THESE ARE CALLED BY CAMERA ADDON
+#THESE ARE CALLED BY ADDONS
 func get_rotation_helper():
 	return rotation_helper
+	
+func get_camera_root():
+	return camera_root
 
 #PUBLIC FUNCTIONS
 func camera_recoil(force):
@@ -698,5 +746,4 @@ func execute_pulled(p_target, p_dir,  p_speed, p_max_time):
 	pulled_distance = pulled_start.distance_to(pulled_target)
 	start_pulled()
 
-func get_camera_root():
-	return camera_root
+

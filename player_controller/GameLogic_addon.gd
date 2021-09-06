@@ -59,10 +59,6 @@ func _ready():
 	area_wind_blast.hide()
 	setup_weapon_data()
 	
-func setup_weapon_data():
-	weapon_data[WEAPON_LIST.PISTOL] = {"bullet_shot" : 1, "spread" : 0, "fire_rate" : 0.6}
-	weapon_data[WEAPON_LIST.SHOTGUN] = {"bullet_shot" : 30, "spread" : 30, "fire_rate" : 1.0}
-	weapon_data[WEAPON_LIST.SMG] = {"bullet_shot" : 1, "spread" : 0, "fire_rate" : 0.16}
 	
 func init_setup():
 	target_body = get_node_or_null(path_body)
@@ -80,6 +76,7 @@ func init_setup():
 
 	blink_marker.set_as_toplevel(true)
 	set_process(true)
+
 
 func _input(_event):
 	if Input.is_action_just_pressed("action_activate"):
@@ -114,7 +111,7 @@ func _input(_event):
 		
 	if Input.is_action_just_pressed("hotkey_5"):
 		active_ability = ABILITY_LIST.WIND_BLAST
-		
+
 func _process(delta):
 	if blink_marker_update:
 		update_blink_marker()
@@ -130,6 +127,11 @@ func _process(delta):
 		wind_blast_timer -= delta
 		if wind_blast_timer <= 0:
 			area_wind_blast.hide()
+			
+func setup_weapon_data():
+	weapon_data[WEAPON_LIST.PISTOL] = {"bullet_shot" : 1, "spread" : 0, "fire_rate" : 0.6}
+	weapon_data[WEAPON_LIST.SHOTGUN] = {"bullet_shot" : 30, "spread" : 30, "fire_rate" : 1.0}
+	weapon_data[WEAPON_LIST.SMG] = {"bullet_shot" : 1, "spread" : 0, "fire_rate" : 0.16}
 		
 func update_blink_marker():
 	if ray_blink.is_colliding():
