@@ -58,6 +58,10 @@ export (float) var on_slope_steep_speed = 1.0
 export (float) var slide_time = 1.2
 export (float) var bump_force = 10
 
+var gravity_vector_default  = Vector3.DOWN
+var gravity_vector = gravity_vector_default
+var gravity_obj = null
+
 var body_height : int = BODY_HEIGHT_LIST.STAND
 var is_grabbing_object = false
 
@@ -96,7 +100,7 @@ var slide_timer = 0
 
 var floor_angle = 0.0
 var floor_collision = null
-var floor_normal = Vector3.UP
+var floor_normal = -gravity_vector
 	
 var floor_obj = null
 var floor_prev_rot = null
@@ -171,14 +175,33 @@ func _ready():
 func _input(event):
 	#MOUSE CAMERA
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-		rotation_helper.rotate_x(-deg2rad(event.relative.y * MOUSE_SENSITIVITY))
-		self.rotate_y(deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1))
-	
+		#rotation_helper.rotate_x(-deg2rad(event.relative.y * MOUSE_SENSITIVITY))
+		#rotation_helper.rotation.x = lerp_angle(rotation_helper.rotation.x, rotation_helper.rotation.x -deg2rad(event.relative.y * MOUSE_SENSITIVITY), 1)
+		rotation_helper.rotation.x += -deg2rad(event.relative.y * MOUSE_SENSITIVITY)
+		#self.rotate_y(deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1))
+		#rotate_object_local(-gravity_vector, deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1))
+		
+		var gt_target = global_transform
+		gt_target.basis.x = gt_target.basis.x.rotated(-gravity_vector, deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1))
+		gt_target.basis.y = -gravity_vector
+		gt_target.basis.z = gt_target.basis.x.cross(gt_target.basis.y)
+		
+		gt_target = gt_target.orthonormalized()
+		global_transform = global_transform.interpolate_with(gt_target, 1)
+		
 		var camera_rot = rotation_helper.rotation_degrees
 		camera_rot.x = clamp(camera_rot.x, -70, 70)
 		rotation_helper.rotation_degrees = camera_rot
 		
 func _process(delta):
+	#ALIGN WITH FLOOR
+	var gt_target = global_transform
+	gt_target.basis.y = -gravity_vector
+	gt_target.basis.z = gt_target.basis.x.cross(gt_target.basis.y)
+	gt_target.basis.x = -gt_target.basis.z.cross(gt_target.basis.y)
+	gt_target = gt_target.orthonormalized()
+	global_transform = global_transform.interpolate_with(gt_target, delta * 12)
+	
 	#TIMER
 	if jump_skip_timer > 0:
 		jump_skip_timer -= delta
@@ -199,8 +222,6 @@ func user_input():
 	input_v = Input.get_action_strength("movement_forward") - Input.get_action_strength("movement_backward")
 	
 	#SPRINT - STOP
-	if Input.is_action_just_released("action_sprint"):
-		input_sprint = false
 		
 	#INPUT JUST PRESSED
 	if Input.is_action_just_pressed("movement_jump"):
@@ -228,6 +249,15 @@ func user_input():
 			start_walk()
 		
 func _physics_process(delta):
+	if gravity_obj == null:
+		gravity_vector = gravity_vector_default
+	else:
+		if gravity_obj:
+			if gravity_obj.gravity_sphere:
+				gravity_vector = (gravity_obj.global_transform.origin - global_transform.origin).normalized()
+			elif gravity_obj.gravity_local_down:
+				gravity_vector = -gravity_obj.global_transform.basis.y
+
 	#GET USER INPUT VALUE
 	user_input()
 	
@@ -258,6 +288,7 @@ func _physics_process(delta):
 			jump_count += 1
 			
 	
+	
 func try_climb_stairs():
 	ray_stair1.force_update_transform()
 	ray_stair2.force_update_transform()
@@ -266,7 +297,7 @@ func try_climb_stairs():
 	
 	var ret = false
 	if ray_stair2.is_colliding() and velocity_h.length() > 0.5:
-		if Vector3.UP.angle_to(ray_stair2.get_collision_normal()) > deg2rad(80):
+		if -gravity_vector.angle_to(ray_stair2.get_collision_normal()) > deg2rad(80):
 			if ray_stair1.is_colliding():
 				var d1 = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
 				var d2 = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
@@ -311,9 +342,9 @@ func do_walk(delta):
 		sprint_modifier = sprint_modi_nonactive
 		
 	#DEFAULT VERTICAL MOVEMENT VALUE
-	floor_normal = Vector3.UP
-	vertical_vector = Vector3.DOWN
-	snap_vector = Vector3.DOWN
+	floor_normal = -gravity_vector
+	vertical_vector = gravity_vector
+	snap_vector = gravity_vector
 	floor_angle = 0.0
 	floor_collision = null
 	if jump_skip_timer > 0:
@@ -323,24 +354,22 @@ func do_walk(delta):
 	if is_on_floor() and get_slide_count() > 0:
 		for i in get_slide_count():
 			var tmp_col = get_slide_collision(i)
-			var tmp_floor_angle = Vector3.UP.angle_to(tmp_col.normal)
-			if tmp_floor_angle > floor_angle:
-				floor_angle = tmp_floor_angle
-				floor_collision = tmp_col
-				floor_normal = tmp_col.normal
-			elif i == 0:
-				floor_angle = tmp_floor_angle
-				floor_collision = tmp_col
-				floor_normal = tmp_col.normal
+			floor_angle = -gravity_vector.angle_to(tmp_col.normal)
+			floor_collision = tmp_col
+			floor_normal = tmp_col.normal
 		
-		#ROTATE BODY TO FOLLOW FLOOR ROTATION, Y AXIS ONLY
-		if floor_obj != floor_collision.collider: #FIRST TIME BEING ON FLOOR, SAVE CURRENT FLOOR ROTATION FOR CALCULATION NEXT FRAME
-			floor_obj = floor_collision.collider
-			floor_prev_rot = floor_obj.rotation * Vector3(0,1,0)
-		else: #APPLY FLOOR ROTATION TO BODY
-			var floor_rot = (floor_obj.rotation - floor_prev_rot) * Vector3(0,1,0)
-			rotation += floor_rot
-			floor_prev_rot = floor_obj.rotation * Vector3(0,1,0)
+		if gravity_obj == null:
+			#ROTATE BODY TO FOLLOW FLOOR ROTATION, Y AXIS ONLY
+			if floor_obj != floor_collision.collider: #FIRST TIME BEING ON FLOOR, SAVE CURRENT FLOOR ROTATION FOR CALCULATION NEXT FRAME
+				floor_obj = floor_collision.collider
+				floor_prev_rot = floor_obj.rotation * Vector3(0,1,0)
+				
+			else: #APPLY FLOOR ROTATION TO BODY
+				var floor_rot = (floor_obj.rotation - floor_prev_rot) * Vector3(0,1,0)
+				rotation += floor_rot
+				floor_prev_rot = floor_obj.rotation * Vector3(0,1,0)
+			
+			
 	else: #NOT TOUCHING FLOOR, DISABLE FLOOR ROTATION
 		floor_obj = null
 		floor_prev_rot = null
@@ -372,7 +401,7 @@ func do_walk(delta):
 	#ROTATE ROOT RAY STAIR
 	var look_at_target = root_ray_stair.global_transform.origin + (velocity_h * Vector3(1,0,1))
 	if not look_at_target.is_equal_approx(root_ray_stair.global_transform.origin):
-		root_ray_stair.look_at(look_at_target, Vector3.UP)
+		root_ray_stair.look_at(look_at_target, -gravity_vector)
 	
 	#DISABLE SNAP WHEN CLIMBING STAIR OR BEING AIR BORNE FOR TOO LONG
 	climb_stair = try_climb_stairs()
@@ -435,11 +464,11 @@ func do_walk(delta):
 		else:
 			velocity += get_floor_velocity() * delta
 		
-	var _vel = move_and_slide_with_snap(velocity, snap_vector, Vector3.UP, true, 4, deg2rad(45), false)
+	var _vel = move_and_slide_with_snap(velocity, snap_vector, -gravity_vector, true, 4, deg2rad(45), false)
 	
 	#CLIMB STAIR
 	if climb_stair:
-		var climb_stair_vec = ((velocity_h * Vector3(1,0,1)).normalized() + Vector3.UP).normalized() * 0.1
+		var climb_stair_vec = ((velocity_h * Vector3(1,0,1)).normalized() + (-gravity_vector)).normalized() * 0.1
 		var _ret = move_and_collide(climb_stair_vec, false)
 	
 	prev_vel_h = velocity_h
@@ -484,8 +513,8 @@ func start_climb():
 	#START CLIMBING LOGIC
 	state = STATELIST.CLIMB
 	climb_target1 = ray_climb3.get_collision_point()
-	var y_diff = climb_target1.y - global_transform.origin.y + climb_y_addition
-	climb_target0 = global_transform.origin + Vector3(0, y_diff, 0)
+	var y_diff = climb_target1.distance_to(global_transform.origin)
+	climb_target0 = global_transform.origin + (-gravity_vector * y_diff)
 	climb_phase = 0
 	climb_timer = climb_timeout
 	if body_height != BODY_HEIGHT_LIST.CROUCH:
@@ -552,7 +581,7 @@ func do_ladder(delta):
 	
 	velocity = velocity_h + velocity_v
 	
-	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
+	var _vel = move_and_slide(velocity, -gravity_vector, true, 4, deg2rad(45), false)
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
 
@@ -595,7 +624,7 @@ func do_slide(delta):
 	
 	velocity = velocity_h + velocity_v
 	
-	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
+	var _vel = move_and_slide(velocity, -gravity_vector, true, 4, deg2rad(45), false)
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
 	
@@ -616,7 +645,7 @@ func do_pulled(delta):
 	
 	velocity = velocity_h + velocity_v
 	
-	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
+	var _vel = move_and_slide(velocity, -gravity_vector, true, 4, deg2rad(45), false)
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
 	
@@ -649,9 +678,8 @@ func start_wallrun():
 	var normal = get_slide_collision(0).normal
 	
 	automove_dir = velocity_h
-	automove_dir.y = 0
-	automove_dir = (automove_dir.slide(normal)).normalized()
-	automove_dir.y = 0
+	automove_dir = automove_dir.slide(-gravity_vector)
+	automove_dir = automove_dir.slide(normal)
 	automove_dir = automove_dir.normalized()
 	
 	state = STATELIST.WALLRUN
@@ -691,7 +719,7 @@ func do_wallrun(delta):
 	
 	velocity = velocity_h + velocity_v
 	
-	var _vel = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(45), false)
+	var _vel = move_and_slide(velocity, -gravity_vector, true, 4, deg2rad(45), false)
 	prev_vel_h = velocity_h
 	prev_vel_v = velocity_v
 	
@@ -704,6 +732,10 @@ func ladder_add(par):
 	else:
 		emit_signal("body_ladder_end")
 		start_walk()
+		
+func signal_in_gravity_dir(par):
+	gravity_obj = par
+	
 
 func wind_force_add(force):
 	external_force += force

@@ -187,16 +187,15 @@ func try_action_m1_just_released():
 			do_wind_blast()
 			
 func do_blink():
-	blink_fov = target_camera.get_fov() + 30
-	blink_marker.hide()
-	blink_marker_update = false
-	
 	var blink_dist = ray_blink.cast_to.length()
 	if ray_blink.is_colliding():
 		blink_dist = ray_blink.global_transform.origin.distance_to(ray_blink.get_collision_point()) - 0.4
 	var blink_target = ray_blink.global_transform.origin + (-ray_blink.global_transform.basis.z * blink_dist)
 	target_body.execute_pulled(blink_target, -ray_blink.global_transform.basis.z, 46, 1)
 	if target_camera:
+		blink_fov = target_camera.get_fov() + 30
+		blink_marker.hide()
+		blink_marker_update = false
 		target_camera.tween_fov_then_back_default(blink_fov, 0.3, 0.5, 0.1)
 		
 func do_wind_blast():
