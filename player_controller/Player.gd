@@ -299,12 +299,16 @@ func try_climb_stairs():
 	var ret = false
 	if ray_stair2.is_colliding() and velocity_h.length() > 0.1:
 		if ray_stair1.is_colliding():
-			var d1 = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
-			var d2 = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
-			if d1 - d2 > 0.1:
-				ret = true
+			var angle = rad2deg( ray_stair1.get_collision_normal().angle_to(-gravity_vector) )
+			if angle > 80.0:
+				var d1 = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
+				var d2 = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
+				if (d1 - d2) > 0.1:
+					
+					ret = true
 		else:
 			ret = true
+
 	return ret
 
 func body_height_crouch():
@@ -399,10 +403,10 @@ func do_walk(delta):
 		velocity_h = prev_vel_h
 	
 	#ROTATE ROOT RAY STAIR
-	if velocity_h.length() > 0.5:
-		var look_at_target = root_ray_stair.global_transform.origin + velocity_h
-		if not look_at_target.is_equal_approx(root_ray_stair.global_transform.origin):
-			root_ray_stair.look_at(look_at_target, -gravity_vector)
+	
+	var look_at_target = root_ray_stair.global_transform.origin + velocity_h.slide(-gravity_vector)
+	if not look_at_target.is_equal_approx(root_ray_stair.global_transform.origin):
+		root_ray_stair.look_at(look_at_target, -gravity_vector)
 	
 	#DISABLE SNAP WHEN CLIMBING STAIR OR BEING AIR BORNE FOR TOO LONG
 	climb_stair = try_climb_stairs()
@@ -470,7 +474,7 @@ func do_walk(delta):
 	
 	#CLIMB STAIR
 	if climb_stair:
-		var climb_stair_vec = ((velocity_h * Vector3(1,0,1)).normalized() + (-gravity_vector)).normalized() * 0.1
+		var climb_stair_vec = ((velocity_h * Vector3(1,0,1)).normalized() + (-gravity_vector)).normalized() * 0.2
 		var _ret = move_and_collide(climb_stair_vec, false)
 	
 	prev_vel_h = velocity_h
