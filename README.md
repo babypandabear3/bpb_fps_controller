@@ -83,7 +83,7 @@ Camera_addon has several options that can be customized
 - Lean Angle : Maximum angle when leaning
 - Lean Pivot Move Speed : Camera movement speed when leaning
 ------------------------------------
-##ADDITIONAL
+## ADDITIONAL
 The controller comes with GameLogic_addon. This is where you are supposed to implement your game logic.
 Included in GameLogic_addon, are several examples :
 - Grab and throw object. Press action_activate to grab or release, action_m0 to throw grabbed object
@@ -91,7 +91,7 @@ Included in GameLogic_addon, are several examples :
 - blink "teleport" from Dishonored. Press hotkey_4 to activate blink, press and hold action_m1 to target, release action_m1 to execute blink
 - wind blast. Press hotkey_5 to activate wind blast, press action_m1 to execute wind blast. 
 
-##Important
+## Important
 - Remember to disable vsync. Camera uses smoothing script that works best if vsync is disabled
 
 
