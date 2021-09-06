@@ -221,7 +221,7 @@ func user_input():
 		get_tree().quit()
 		
 	#TOGGLE FLY (LADDER) MODE
-	if Input.is_action_just_pressed("action_toggle_fly"):
+	if Input.is_action_just_pressed("action_fly_toggle"):
 		if state == STATELIST.WALK:
 			start_ladder()
 		else:
