@@ -401,7 +401,7 @@ func do_walk(delta):
 				slide_vector.y = 0
 				slide_vector = slide_vector.normalized()
 				velocity_h = velocity_h.slide(slide_vector)
-				vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
+				vertical_vector = vertical_vector.slide(floor_collision.normal)
 				velocity_v = vertical_vector * on_slope_steep_speed
 	else:
 		#ON AIR
@@ -586,7 +586,7 @@ func do_slide(delta):
 				slide_vector.y = 0
 				slide_vector = slide_vector.normalized()
 				velocity_h = velocity_h.slide(slide_vector)
-				vertical_vector = Vector3.DOWN.slide(floor_collision.normal)
+				vertical_vector = vertical_vector.slide(floor_collision.normal)
 				velocity_v = vertical_vector * on_slope_steep_speed
 	else:
 		#ON AIR
