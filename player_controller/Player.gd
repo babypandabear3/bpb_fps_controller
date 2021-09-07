@@ -175,19 +175,13 @@ func _ready():
 func _input(event):
 	#MOUSE CAMERA
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-		#rotation_helper.rotate_x(-deg2rad(event.relative.y * MOUSE_SENSITIVITY))
-		#rotation_helper.rotation.x = lerp_angle(rotation_helper.rotation.x, rotation_helper.rotation.x -deg2rad(event.relative.y * MOUSE_SENSITIVITY), 1)
 		rotation_helper.rotation.x += -deg2rad(event.relative.y * MOUSE_SENSITIVITY)
-		#self.rotate_y(deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1))
-		#rotate_object_local(-gravity_vector, deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1))
 		
-		var gt_target = global_transform
-		gt_target.basis.x = gt_target.basis.x.rotated(-gravity_vector, deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1))
-		gt_target.basis.y = -gravity_vector
-		gt_target.basis.z = gt_target.basis.x.cross(gt_target.basis.y)
-		
-		gt_target = gt_target.orthonormalized()
-		global_transform = global_transform.interpolate_with(gt_target, 1)
+		var basis_target = global_transform.basis
+		basis_target.x = basis_target.x.rotated(-gravity_vector, deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1)).normalized()
+		basis_target.y = -gravity_vector.normalized()
+		basis_target.z = basis_target.x.cross(basis_target.y).normalized()
+		global_transform.basis = basis_target
 		
 		var camera_rot = rotation_helper.rotation_degrees
 		camera_rot.x = clamp(camera_rot.x, -70, 70)
@@ -298,17 +292,17 @@ func try_climb_stairs():
 	
 	var ret = false
 	if ray_stair2.is_colliding() and velocity_h.length() > 0.1:
-		if ray_stair1.is_colliding():
-			var angle = rad2deg( ray_stair1.get_collision_normal().angle_to(-gravity_vector) )
-			if angle > 80.0:
-				var d1 = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
-				var d2 = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
-				if (d1 - d2) > 0.1:
-					
-					ret = true
-		else:
-			ret = true
-
+		var angle2 = rad2deg( ray_stair2.get_collision_normal().angle_to(-gravity_vector) )
+		if angle2 > 80.0:
+			if ray_stair1.is_colliding():
+				var angle = rad2deg( ray_stair1.get_collision_normal().angle_to(-gravity_vector) )
+				if angle > 80.0:
+					var d1 = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
+					var d2 = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
+					if (d1 - d2) > 0.1:
+						ret = true
+			else:
+				ret = true
 	return ret
 
 func body_height_crouch():
