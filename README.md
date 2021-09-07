@@ -82,6 +82,7 @@ Camera_addon has several options that can be customized
 - Head Bob Speed : Speed of head bobbing
 - Lean Angle : Maximum angle when leaning
 - Lean Pivot Move Speed : Camera movement speed when leaning
+- Wallrun Lean Angle : Angle camera tilted while doing wall run
 ------------------------------------
 ## ADDITIONAL
 The controller comes with GameLogic_addon. This is where you are supposed to implement your game logic.

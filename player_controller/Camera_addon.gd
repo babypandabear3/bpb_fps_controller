@@ -12,6 +12,7 @@ export (float) var head_bob = 0.026
 export (float) var head_bob_speed = 8
 export (float) var lean_angle = 6
 export (float) var lean_pivot_move_speed = 12
+export (float) var wallrun_lean_angle = 3
 
 var physic_fps : float = 0.0
 
@@ -35,7 +36,7 @@ var hb_sin_progress = 0
 #LEAN
 var lean_speed = 6
 var lean_target = 0
-
+var lean_dir = 0
 var lean_pivot_move_target = Vector3.ZERO
 
 
@@ -109,6 +110,17 @@ func _process(delta):
 		
 	screen_shake(delta)
 		
+func _physics_process(_delta):
+	user_input()
+	
+func user_input():
+	lean_dir = 0
+	if feat_lean:
+		if Input.is_action_pressed("action_lean_left"):
+			lean_dir += 1
+		if Input.is_action_pressed("action_lean_right"):
+			lean_dir -= 1
+	
 func do_headbob(delta):
 	if target.velocity.length() > 1.0 and target.is_on_floor():
 		hb_deg_sin_progress += deg2rad(delta * hb_sin_speed * target.sprint_modifier)
@@ -136,17 +148,15 @@ func do_headbob(delta):
 
 
 func do_lean(_delta):
-	var lean_dir = 0
+	
 	lean_pivot_move_target = Vector3.ZERO
-	if Input.is_action_pressed("action_lean_left"):
-		lean_dir += 1
+	if lean_dir > 0:
 		ray_lean.cast_to = Vector3.LEFT
 		lean_pivot_move_target = Vector3.LEFT
 		ray_lean.force_raycast_update()
 		if ray_lean.is_colliding():
 			lean_pivot_move_target *= ray_lean.global_transform.origin.distance_to(ray_lean.get_collision_point()) * 0.5
-	if Input.is_action_pressed("action_lean_right"):
-		lean_dir -= 1
+	elif lean_dir < 0:
 		ray_lean.cast_to = Vector3.RIGHT
 		lean_pivot_move_target = Vector3.RIGHT
 		ray_lean.force_raycast_update()
@@ -158,13 +168,12 @@ func do_lean(_delta):
 	
 
 func do_lean_on_wallrun(_delta):
-	var lean_dir = 0
 	lean_target = 0
 	if target.wallrun_left:
 		lean_dir -= 1
 	else:
 		lean_dir += 1
-	lean_target = lean_angle * lean_dir
+	lean_target = wallrun_lean_angle * lean_dir
 	
 func do_crouch_crawl(delta):
 	if target.body_height == target.BODY_HEIGHT_LIST.CROUCH :
