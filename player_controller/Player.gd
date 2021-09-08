@@ -366,9 +366,13 @@ func do_walk(delta):
 	if is_on_floor() and get_slide_count() > 0:
 		for i in get_slide_count():
 			var tmp_col = get_slide_collision(i)
-			floor_angle = -gravity_vector.angle_to(tmp_col.normal)
+			
 			floor_collision = tmp_col
 			floor_normal = tmp_col.normal
+		
+		if ray_wallrun.is_colliding():
+			floor_normal = ray_wallrun.get_collision_normal()
+		floor_angle = -gravity_vector.angle_to(floor_normal)
 		
 		if gravity_obj == null:
 			#ROTATE BODY TO FOLLOW FLOOR ROTATION, Y AXIS ONLY
