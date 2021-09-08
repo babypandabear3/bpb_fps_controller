@@ -157,6 +157,7 @@ onready var ray_climb3 = $ray_climb3
 onready var root_ray_stair = $root_ray_stair
 onready var ray_stair1 = $root_ray_stair/ray_stair1
 onready var ray_stair2 = $root_ray_stair/ray_stair2
+onready var ray_wallrun = $root_ray_stair/ray_wallrun
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -168,6 +169,7 @@ func _ready():
 	
 	ray_stair1.add_exception(self)
 	ray_stair2.add_exception(self)
+	ray_wallrun.add_exception(self)
 	
 	air_borne_disable_snap = coyote_time + 0.1
 	
@@ -705,7 +707,7 @@ func do_swim(delta):
 	prev_vel_v = velocity_v
 	
 func is_wallrun_allowed():
-	if input_sprint and not is_on_floor() and is_on_wall() and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND and not climb_stair:
+	if input_sprint and not is_on_floor() and not ray_wallrun.is_colliding() and is_on_wall() and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND and not climb_stair:
 		if ray_stair1.is_colliding() and ray_stair2.is_colliding():
 			var d1 : float = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
 			var d2 : float = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
