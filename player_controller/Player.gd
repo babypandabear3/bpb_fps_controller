@@ -17,6 +17,8 @@ signal body_pulled_start
 signal body_pulled_end
 signal body_wallrun_start
 signal body_wallrun_end
+signal body_swim_start
+signal body_swim_end
 
 enum STATELIST {
 	WALK,
@@ -25,6 +27,7 @@ enum STATELIST {
 	SLIDE,
 	WALLRUN,
 	PULLED,
+	SWIM,
 }
 
 enum BODY_HEIGHT_LIST {
@@ -57,6 +60,8 @@ export (float) var slope_limit = 46.0
 export (float) var on_slope_steep_speed = 1.0
 export (float) var slide_time = 1.2
 export (float) var bump_force = 10
+export (float) var swim_h_deacc = 58
+export (float) var swim_v_deacc = 0.95
 
 var gravity_vector_default  = Vector3.DOWN
 var gravity_vector = gravity_vector_default
@@ -80,6 +85,7 @@ var velocity_v = Vector3()
 var vertical_vector = Vector3.DOWN
 var on_floor_vertical_speed = 0.1
 var snap_vector = Vector3.DOWN
+var snap_vector_length = 0.5
 
 var speed_v = 0
 var sprint_modifier = 1
@@ -115,6 +121,9 @@ var pulled_target = Vector3.ZERO
 var pulled_speed = 60
 var pulled_dir = Vector3.ZERO
 var pulled_timer = 0
+
+#SWIM
+var swim_area_count = 0
 
 #SIGNAL LOGIC
 var ladder_count : int = 0
@@ -194,7 +203,7 @@ func _process(delta):
 	gt_target.basis.z = gt_target.basis.x.cross(gt_target.basis.y)
 	gt_target.basis.x = -gt_target.basis.z.cross(gt_target.basis.y)
 	gt_target = gt_target.orthonormalized()
-	global_transform = global_transform.interpolate_with(gt_target, delta * 12)
+	global_transform = global_transform.interpolate_with(gt_target, delta * 6)
 	
 	#TIMER
 	if jump_skip_timer > 0:
@@ -268,6 +277,8 @@ func _physics_process(delta):
 			do_wallrun(delta)
 		STATELIST.PULLED:
 			do_pulled(delta)
+		STATELIST.SWIM:
+			do_swim(delta)
 
 	if is_on_floor():
 		just_landed = false
@@ -342,12 +353,13 @@ func do_walk(delta):
 	#DEFAULT VERTICAL MOVEMENT VALUE
 	floor_normal = -gravity_vector
 	vertical_vector = gravity_vector
-	snap_vector = gravity_vector
+	snap_vector = gravity_vector * snap_vector_length
 	floor_angle = 0.0
 	floor_collision = null
 	if jump_skip_timer > 0:
 		snap_vector = Vector3.ZERO
 			
+	
 	#IF CAN DETECT FLOOR, GET COLLISION INFORMATION WITH FLOOR, WITH LARGEST ANGLE
 	if is_on_floor() and get_slide_count() > 0:
 		for i in get_slide_count():
@@ -361,12 +373,10 @@ func do_walk(delta):
 			if floor_obj != floor_collision.collider: #FIRST TIME BEING ON FLOOR, SAVE CURRENT FLOOR ROTATION FOR CALCULATION NEXT FRAME
 				floor_obj = floor_collision.collider
 				floor_prev_rot = floor_obj.rotation * Vector3(0,1,0)
-				
 			else: #APPLY FLOOR ROTATION TO BODY
 				var floor_rot = (floor_obj.rotation - floor_prev_rot) * Vector3(0,1,0)
 				rotation += floor_rot
 				floor_prev_rot = floor_obj.rotation * Vector3(0,1,0)
-			
 			
 	else: #NOT TOUCHING FLOOR, DISABLE FLOOR ROTATION
 		floor_obj = null
@@ -397,7 +407,6 @@ func do_walk(delta):
 		velocity_h = prev_vel_h
 	
 	#ROTATE ROOT RAY STAIR
-	
 	var look_at_target = root_ray_stair.global_transform.origin + velocity_h.slide(-gravity_vector)
 	if not look_at_target.is_equal_approx(root_ray_stair.global_transform.origin):
 		root_ray_stair.look_at(look_at_target, -gravity_vector)
@@ -566,16 +575,16 @@ func do_ladder(delta):
 	#HORIZONTAL VELOCITY
 	if Vector2(input_h, input_v).length() < 0.4:
 		#DEACCELERATION
-		velocity_h = prev_vel_h * 0.88
+		velocity_h = prev_vel_h * delta * speed_deacc
 	else:
 		#ACCELERATION
 		if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
 			#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
-			velocity_h *= 0.88
+			velocity_h = prev_vel_h * delta * speed_deacc
 		else:
 			#INCREASE MOVEMENT VECTOR BY ADDING NEW MOVEMENT VECTOR TO PREVIOS FRAME HORIZONTAL VELOCITY
 			velocity_h = prev_vel_h + (horizontal_vector * speed_acc * delta)
-		
+	
 	#VERTICAL VELOCITY
 	velocity_v = Vector3.ZERO
 	
@@ -597,11 +606,12 @@ func do_slide(delta):
 	sprint_modifier = sprint_modi
 	if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
 		#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
-		velocity_h *= 0.88
+		velocity_h = prev_vel_h * delta * speed_deacc
 	else:
 		#INCREASE MOVEMENT VECTOR BY ADDING NEW MOVEMENT VECTOR TO PREVIOS FRAME HORIZONTAL VELOCITY
 		velocity_h = prev_vel_h + (automove_dir * speed_acc * delta)
-		
+	
+	
 	if is_on_floor() and jump_skip_timer <= 0: 
 		#ON FLOOR
 		if floor_angle <= deg2rad(slope_limit): #STICKING ON FLOOR / SLOPE
@@ -657,9 +667,45 @@ func do_pulled(delta):
 		emit_signal("body_pulled_end")
 		start_walk()
 		
+func start_swim():
+	state = STATELIST.SWIM
+	emit_signal("body_swim_start")
+	
+func do_swim(delta):
+	#GET USER INPUT VALUE
+	
+	#DEFINE HORIZONTAL MOVEMENT VECTOR
+	var dir_x = camera_root.global_transform.basis.x * input_h
+	var dir_z = -camera_root.global_transform.basis.z * input_v
+	var horizontal_vector = (dir_x + dir_z).normalized()
+	
+	#HORIZONTAL VELOCITY
+	if Vector2(input_h, input_v).length() < 0.4:
+		#DEACCELERATION
+		velocity_h = prev_vel_h * delta * swim_h_deacc
+	else:
+		#ACCELERATION
+		if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
+			#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
+			velocity_h = prev_vel_h * delta * swim_h_deacc
+		else:
+			#INCREASE MOVEMENT VECTOR BY ADDING NEW MOVEMENT VECTOR TO PREVIOS FRAME HORIZONTAL VELOCITY
+			velocity_h = prev_vel_h + (horizontal_vector * speed_acc * delta)
+		
+		
+	
+	#VERTICAL VELOCITY
+	velocity_v = prev_vel_v
+	velocity_v *= swim_v_deacc
+	
+	velocity = velocity_h + velocity_v
+	
+	var _vel = move_and_slide(velocity, -gravity_vector, true, 4, deg2rad(45), false)
+	prev_vel_h = velocity_h
+	prev_vel_v = velocity_v
 	
 func is_wallrun_allowed():
-	if input_sprint and  not is_on_floor() and is_on_wall() and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND and not climb_stair:
+	if input_sprint and not is_on_floor() and is_on_wall() and jump_skip_timer <= 0 and body_height == BODY_HEIGHT_LIST.STAND and not climb_stair:
 		if ray_stair1.is_colliding() and ray_stair2.is_colliding():
 			var d1 : float = ray_stair1.global_transform.origin.distance_to(ray_stair1.get_collision_point())
 			var d2 : float = ray_stair2.global_transform.origin.distance_to(ray_stair2.get_collision_point())
@@ -695,11 +741,12 @@ func do_wallrun(delta):
 		start_walk()
 		return
 		
+	
 	var normal = get_slide_collision(0).normal
 	sprint_modifier = sprint_modi
 	if velocity_h.length() > (speed_h_max * sprint_modifier * delta):
 		#SPEED LIMIT. IF GOING TOO FAST, MAKE HORIZONTAL VELOCITY VECTOR SHORTER / SLOWER
-		velocity_h *= 0.88
+		velocity_h = prev_vel_h * delta * speed_deacc
 	else:
 		#INCREASE MOVEMENT VECTOR BY ADDING NEW MOVEMENT VECTOR TO PREVIOS FRAME HORIZONTAL VELOCITY
 		velocity_h = prev_vel_h + (automove_dir * speed_acc * delta)
@@ -725,7 +772,7 @@ func do_wallrun(delta):
 	
 	
 #SIGNAL LOGIC
-func ladder_add(par):
+func signal_in_ladder(par):
 	ladder_count += par
 	if ladder_count > 0:
 		start_ladder()
@@ -736,8 +783,15 @@ func ladder_add(par):
 func signal_in_gravity_dir(par):
 	gravity_obj = par
 	
+func signal_in_swim_area(par):
+	swim_area_count += par
+	if swim_area_count > 0:
+		start_swim()
+	else:
+		emit_signal("body_swim_end")
+		start_walk()
 
-func wind_force_add(force):
+func signal_in_wind_force(force):
 	external_force += force
 
 #THESE ARE CALLED BY ADDONS

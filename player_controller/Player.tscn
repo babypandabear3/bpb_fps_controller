@@ -429,6 +429,7 @@ ladder = true
 wind_force = true
 gravity_sphere = true
 gravity_local_down = true
+swim_area = true
 
 [node name="CollisionShape2" type="CollisionShape" parent="Signal_in"]
 transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, -0.55, 0 )

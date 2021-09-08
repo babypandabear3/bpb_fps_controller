@@ -136,7 +136,6 @@ hotkey_5={
 [physics]
 
 common/enable_pause_aware_picking=true
-3d/physics_engine="Bullet"
 
 [rendering]
 

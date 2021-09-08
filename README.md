@@ -70,6 +70,8 @@ There are several exported variables that can be changed to customize Player beh
 - On Slope Steep Speed : how fast player will slide down steep slope
 - Slide Time : How long player will slide 
 - Bump Force : Force applice to Rigidbody when player bumbp to it
+- Swim H Deacc : Swimming movement speed deacceleration
+- Swim V Deacc : Swimming fall down deacceleration when entering water
 
 Camera_addon has several options that can be customized
 - Follow Target : Point it at Player's main Node (KinematicBody), if empty it will use parent node as target
