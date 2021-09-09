@@ -192,7 +192,7 @@ func _input(event):
 		basis_target.x = basis_target.x.rotated(-gravity_vector, deg2rad(event.relative.x * MOUSE_SENSITIVITY * -1)).normalized()
 		basis_target.y = -gravity_vector.normalized()
 		basis_target.z = basis_target.x.cross(basis_target.y).normalized()
-		global_transform.basis = basis_target
+		global_transform.basis = basis_target.orthonormalized()
 		
 		var camera_rot = rotation_helper.rotation_degrees
 		camera_rot.x = clamp(camera_rot.x, -70, 70)
@@ -205,7 +205,13 @@ func _process(delta):
 	gt_target.basis.z = gt_target.basis.x.cross(gt_target.basis.y)
 	gt_target.basis.x = -gt_target.basis.z.cross(gt_target.basis.y)
 	gt_target = gt_target.orthonormalized()
-	global_transform = global_transform.interpolate_with(gt_target, delta * 6)
+	
+
+	var a = Quat((global_transform.basis).orthonormalized())
+	var b = Quat(gt_target.basis)
+	var c = a.slerp(b, delta * 6)
+	global_transform.basis = Basis(c).orthonormalized()
+	#global_transform = global_transform.interpolate_with(gt_target, delta * 6)
 	
 	#TIMER
 	if jump_skip_timer > 0:
@@ -571,8 +577,6 @@ func start_ladder():
 	emit_signal("body_ladder_start")
 	
 func do_ladder(delta):
-	#GET USER INPUT VALUE
-	
 	#DEFINE HORIZONTAL MOVEMENT VECTOR
 	var dir_x = camera_root.global_transform.basis.x * input_h
 	var dir_z = -camera_root.global_transform.basis.z * input_v
@@ -838,4 +842,5 @@ func execute_pulled(p_target, p_dir,  p_speed, p_max_time):
 	pulled_distance = pulled_start.distance_to(pulled_target)
 	start_pulled()
 
-
+func get_velocity():
+	return velocity

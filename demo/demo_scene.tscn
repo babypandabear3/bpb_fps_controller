@@ -99,9 +99,9 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 2, 38 )
 [node name="Player" parent="." instance=ExtResource( 2 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.55727, 0 )
 
-[node name="Camera_addon" parent="." instance=ExtResource( 9 )]
-follow_target = NodePath("../Player")
-
 [node name="GameLogic_addon" parent="." instance=ExtResource( 10 )]
 path_body = NodePath("../Player")
 path_camera = NodePath("../Camera_addon")
+
+[node name="Camera_addon" parent="." instance=ExtResource( 9 )]
+follow_target = NodePath("../Player")

@@ -59,17 +59,17 @@ onready var crouch_point = $bob_pivot/lean_pivot/rotation_helper_point/crouch_po
 onready var crawl_point = $bob_pivot/lean_pivot/rotation_helper_point/crawl_point
 onready var camera = $bob_pivot/lean_pivot/rotation_helper_point/camera_root/Camera
 onready var ray_lean = $bob_pivot/ray_lean
-
-
 onready var tween_fov = $Tween_fov
 
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	
+	
 	camera.current = true
 	camera.fov = fov_default
 	noise = OpenSimplexNoise.new()
-	set_as_toplevel(true)
+	#set_as_toplevel(true)
 	target = get_node_or_null(follow_target)
 	if target == null:
 		target = get_parent()
@@ -218,4 +218,3 @@ func tween_fov_then_back_default(p_fov, p_tween_speed_in, p_tween_speed_out, wai
 	
 func get_fov():
 	return camera.fov
-	

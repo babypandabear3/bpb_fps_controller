@@ -163,6 +163,7 @@ func try_activate_just_pressed():
 			if obj.has_method("activate"):
 				obj.activate(get_default_activate_data())
 				is_grabbing = true
+				grab_point.global_transform.basis = obj.global_transform.basis
 	
 func try_activate_just_released():
 	pass
