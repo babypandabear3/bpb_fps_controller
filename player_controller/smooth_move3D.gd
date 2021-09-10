@@ -1,14 +1,11 @@
 extends Spatial
 
 export (NodePath) var follow_target
-export (int) var skip_frame = 2
+
 var target : Spatial
-
-var gt2 : Transform
-var gt1 : Transform
-var gt0 : Transform
-
-var skip = 0
+var update = false
+var gt_prev : Transform
+var gt_current : Transform
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -18,21 +15,21 @@ func _ready():
 		target = get_parent()
 	global_transform = target.global_transform
 	
-	gt0 = target.global_transform
-	gt1 = target.global_transform
-	gt2 = target.global_transform
+	gt_prev = target.global_transform
+	gt_current = target.global_transform
 
+func update_transform():
+	gt_prev = gt_current
+	gt_current = target.global_transform
+	
 func _process(_delta):
-	if skip > 0:
-		skip -= 1
-		return
+	if update:
+		update_transform()
+		update = false
 		
 	var f = Engine.get_physics_interpolation_fraction()
-	global_transform = gt2.interpolate_with(gt1, f)
+	global_transform = gt_prev.interpolate_with(gt_current, f)
 
 func _physics_process(_delta):
-	skip = skip_frame
-	gt2 = gt1
-	gt1 = gt0
-	gt0 = target.global_transform
+	update = true
 	
